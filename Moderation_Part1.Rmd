@@ -1,0 +1,599 @@
+---
+title: "Moderation_Part1"
+author: "Lộc"
+date: "2024-02-28"
+output: 
+  html_document:
+    theme: flatly
+    toc: true
+    number_sections : true
+    toc_float: 
+      collapsed: true
+    toc-location: left
+    code_folding: hide
+---
+
+# Input:
+
+```{r}
+#Call packages
+pacman::p_load(rio,
+               here,
+               janitor,
+               tidyverse,
+               dplyr,
+               magrittr,
+               ggplot2,
+               purrr,
+               lubridate,
+               mice,
+               plotly)
+
+#Data:
+library(readxl)
+df<- read_excel("C:/Users/locca/Downloads/Data_Rác thải điện tử.xlsx", 
+    sheet = "Đã mã hóa")
+```
+
+# Output:
+
+## Prepare the dataset:
+
+```{r,warning = F}
+df_new <-df %>% 
+  mutate(SAFETY = (SAFETY1+SAFETY2+SAFETY3+SAFETY4)/4,
+         OFFER = (OFFER1+OFFER2+OFFER3+OFFER4)/4,
+         AWARENESS = (AWARENESS1+AWARENESS2+AWARENESS3+AWARENESS4)/4,
+         SUPPLYINPUT =(SUPPLYINPUT1+SUPPLYINPUT2+SUPPLYINPUT3+SUPPLYINPUT4)/4,
+         REVERSE_DECISION = (REVERSE_DECISION1+REVERSE_DECISION2+REVERSE_DECISION3+REVERSE_DECISION4)/4)
+
+m<-df %>% select(contains(c("SAFETY",
+                            "OFFER",
+                            "SUPPLY",
+                            "AWARE",
+                            "REVERSE")))
+```
+
+## Some preliminary analysis data:
+
+### Likert chart:
+
+```{r Likert chart}
+#===========================
+# Simulate data for ploting 
+#===========================
+
+responses <- c("Hoàn toàn không đồng ý", 
+               "Không đồng ý", 
+               "Bình thường", 
+               "Đồng ý", 
+               "Hoàn toàn đồng ý")
+
+size <- nrow(df_new)
+
+brand <- as.vector(unlist(purrr::map(.x = unique(names(m)),
+                                     .f = ~rep(.x,size)))
+)
+
+prob = c(sum(df_new$SAFETY1 == 1)/size,
+         sum(df_new$SAFETY1 == 2)/size,
+         sum(df_new$SAFETY1 == 3)/size,
+         sum(df_new$SAFETY1 == 4)/size,
+         sum(df_new$SAFETY1 == 5)/size)
+
+cus_res <- c(
+      ### For SAFETY variable:
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$SAFETY1 == 1)/size,
+                             sum(df_new$SAFETY1 == 2)/size,
+                              sum(df_new$SAFETY1 == 3)/size,
+                              sum(df_new$SAFETY1 == 4)/size,
+                              sum(df_new$SAFETY1 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$SAFETY2 == 1)/size,
+                             sum(df_new$SAFETY2 == 2)/size,
+                              sum(df_new$SAFETY2 == 3)/size,
+                              sum(df_new$SAFETY2 == 4)/size,
+                              sum(df_new$SAFETY2 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$SAFETY3 == 1)/size,
+                             sum(df_new$SAFETY3 == 2)/size,
+                              sum(df_new$SAFETY3 == 3)/size,
+                              sum(df_new$SAFETY3 == 4)/size,
+                              sum(df_new$SAFETY3 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$SAFETY4 == 1)/size,
+                             sum(df_new$SAFETY4 == 2)/size,
+                              sum(df_new$SAFETY4 == 3)/size,
+                              sum(df_new$SAFETY4 == 4)/size,
+                              sum(df_new$SAFETY4 == 5)/size)),
+
+     ### For OFFER variable:
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$OFFER1 == 1)/size,
+                             sum(df_new$OFFER1 == 2)/size,
+                              sum(df_new$OFFER1 == 3)/size,
+                              sum(df_new$OFFER1 == 4)/size,
+                              sum(df_new$OFFER1 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$OFFER2 == 1)/size,
+                             sum(df_new$OFFER2 == 2)/size,
+                              sum(df_new$OFFER2 == 3)/size,
+                              sum(df_new$OFFER2 == 4)/size,
+                              sum(df_new$OFFER2 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$OFFER3 == 1)/size,
+                             sum(df_new$OFFER3 == 2)/size,
+                              sum(df_new$OFFER3 == 3)/size,
+                              sum(df_new$OFFER3 == 4)/size,
+                              sum(df_new$OFFER3 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$OFFER4 == 1)/size,
+                             sum(df_new$OFFER4 == 2)/size,
+                              sum(df_new$OFFER4 == 3)/size,
+                              sum(df_new$OFFER4 == 4)/size,
+                              sum(df_new$OFFER4 == 5)/size)),
+      ### For SUPPLYINPUT variable:
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$SUPPLYINPUT1 == 1)/size,
+                             sum(df_new$SUPPLYINPUT1 == 2)/size,
+                              sum(df_new$SUPPLYINPUT1 == 3)/size,
+                              sum(df_new$SUPPLYINPUT1 == 4)/size,
+                              sum(df_new$SUPPLYINPUT1 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$SUPPLYINPUT2 == 1)/size,
+                             sum(df_new$SUPPLYINPUT2 == 2)/size,
+                              sum(df_new$SUPPLYINPUT2 == 3)/size,
+                              sum(df_new$SUPPLYINPUT2 == 4)/size,
+                              sum(df_new$SUPPLYINPUT2 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$SUPPLYINPUT3 == 1)/size,
+                             sum(df_new$SUPPLYINPUT3 == 2)/size,
+                              sum(df_new$SUPPLYINPUT3 == 3)/size,
+                              sum(df_new$SUPPLYINPUT3 == 4)/size,
+                              sum(df_new$SUPPLYINPUT3 == 5)/size)),
+              sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$SUPPLYINPUT4 == 1)/size,
+                             sum(df_new$SUPPLYINPUT4 == 2)/size,
+                              sum(df_new$SUPPLYINPUT4 == 3)/size,
+                              sum(df_new$SUPPLYINPUT4 == 4)/size,
+                              sum(df_new$SUPPLYINPUT4 == 5)/size)),
+       ### For AWARENESS variable:
+            sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$AWARENESS1 == 1)/size,
+                             sum(df_new$AWARENESS1 == 2)/size,
+                              sum(df_new$AWARENESS1 == 3)/size,
+                              sum(df_new$AWARENESS1 == 4)/size,
+                              sum(df_new$AWARENESS1 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$AWARENESS2 == 1)/size,
+                             sum(df_new$AWARENESS2 == 2)/size,
+                              sum(df_new$AWARENESS2 == 3)/size,
+                              sum(df_new$AWARENESS2 == 4)/size,
+                              sum(df_new$AWARENESS2 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$AWARENESS3 == 1)/size,
+                             sum(df_new$AWARENESS3 == 2)/size,
+                              sum(df_new$AWARENESS3 == 3)/size,
+                              sum(df_new$AWARENESS3 == 4)/size,
+                              sum(df_new$AWARENESS3 == 5)/size)),
+              sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$AWARENESS4 == 1)/size,
+                             sum(df_new$AWARENESS4 == 2)/size,
+                              sum(df_new$AWARENESS4 == 3)/size,
+                              sum(df_new$AWARENESS4 == 4)/size,
+                              sum(df_new$AWARENESS4 == 5)/size)),
+
+      ### For AWARENESS variable:
+            sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$REVERSE_DECISION1 == 1)/size,
+                             sum(df_new$REVERSE_DECISION1 == 2)/size,
+                              sum(df_new$REVERSE_DECISION1 == 3)/size,
+                              sum(df_new$REVERSE_DECISION1 == 4)/size,
+                              sum(df_new$REVERSE_DECISION1 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$REVERSE_DECISION2 == 1)/size,
+                             sum(df_new$REVERSE_DECISION2 == 2)/size,
+                              sum(df_new$REVERSE_DECISION2 == 3)/size,
+                              sum(df_new$REVERSE_DECISION2 == 4)/size,
+                              sum(df_new$REVERSE_DECISION2 == 5)/size)),
+             sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$REVERSE_DECISION3 == 1)/size,
+                             sum(df_new$REVERSE_DECISION3 == 2)/size,
+                              sum(df_new$REVERSE_DECISION3 == 3)/size,
+                              sum(df_new$REVERSE_DECISION3 == 4)/size,
+                              sum(df_new$REVERSE_DECISION3 == 5)/size)),
+              sample(responses, 
+                    size = size, 
+                    replace = TRUE, 
+                    prob = c(sum(df_new$REVERSE_DECISION4 == 1)/size,
+                             sum(df_new$REVERSE_DECISION4 == 2)/size,
+                              sum(df_new$REVERSE_DECISION4 == 3)/size,
+                              sum(df_new$REVERSE_DECISION4 == 4)/size,
+                              sum(df_new$REVERSE_DECISION4 == 5)/size))
+)
+```
+
+```{r,warning = F}
+#===========================
+# Prepare data for ploting
+#===========================
+
+data_cus <- tibble(brand = brand, cus_res = cus_res)
+
+data_cus %>% 
+  group_by(brand, cus_res) %>% 
+  count() %>% 
+  ungroup() %>% 
+  group_by(brand) %>% 
+  mutate(percent = 100*n / sum(n)) %>% 
+  mutate(percent = round(percent, 0)) %>% 
+  mutate(bar_text = paste0(percent, "%")) %>% 
+  ungroup() -> df_for_ploting
+
+df_for_ploting %>% 
+  filter(cus_res == responses[5]) %>% 
+  arrange(percent) %>% 
+  pull(brand) -> order_y
+
+df_for_ploting %>% 
+  mutate(brand = factor(brand, levels = order_y)) %>% 
+  mutate(cus_res = factor(cus_res, levels = responses[5:1])) -> df_odered
+
+#---------------------
+# Data Vis: Version 1
+#---------------------
+
+## Select Font for the graph: 
+
+col_dislike_alot <- "#e36c33"
+
+col_dislike <- "#edad88"
+
+col_neutral <- "#c7cdd1"
+
+col_like <- "#829cb2"
+
+col_like_alot <- "#3e6487"
+
+  
+library(showtext)
+my_font <- "Roboto Condensed"
+font_add_google(name = my_font, family = my_font)
+
+showtext_auto()
+
+theme_set(theme_minimal())
+
+df_odered %>% 
+  ggplot(aes(y = brand, x = percent, fill = cus_res)) + 
+  geom_col(width = 0.8, position = "fill") + 
+  theme(legend.position = "top") + 
+  theme(plot.margin = unit(rep(0.7, 4), "cm")) +
+  scale_fill_manual(values = c('Hoàn toàn đồng ý' = col_like_alot,
+                               'Đồng ý'= col_like, 
+                               'Bình thường' = col_neutral,
+                               'Không đồng ý'  = col_dislike, 
+                               'Hoàn toàn không đồng ý' = col_dislike_alot),
+                   guide = guide_legend(reverse = TRUE)) +
+  theme(text = element_text(family = my_font)) + 
+  theme(legend.title = element_blank()) + 
+  theme(legend.text = element_text(size = 11, family = my_font, color = "grey10")) + 
+  theme(legend.key.height = unit(0.35, "cm")) +  
+  theme(legend.key.width = unit(0.27*3, "cm")) + 
+  theme(axis.title = element_blank()) + 
+  theme(panel.grid.minor = element_blank()) + 
+  theme(panel.grid.major.x = element_line(color = "grey70", size = 0.8)) + 
+  scale_x_continuous(expand = c(0, 0), labels = paste0(seq(0, 100, 25), "%")) + 
+  scale_y_discrete(expand = c(0, 0)) + 
+  theme(axis.text = element_text(color = "grey30", size = 11, family = my_font)) + 
+  theme(plot.title = ggtext::element_markdown(size = 16, face = "bold")) + 
+  theme(plot.caption = element_text(size = 10.5, color = "grey40", vjust = -1.5, hjust = 0)) + 
+  theme(plot.subtitle = element_text(size = 11.5, color = "grey10")) + 
+  theme(plot.title.position = "plot") +  
+  theme(plot.caption.position = "plot")->gg1
+gg1
+```
+
+### The distribution plot of likert scales:
+
+```{r}
+
+m_new <-m %>% pivot_longer(cols = everything(),
+                           names_to = "variable",
+                           values_to = "value")
+
+ggplot()+
+  ggridges::geom_density_ridges(data  = m_new, 
+                                aes(x  = value,
+                                    y  = as.factor(variable),
+                                    fill = as.factor(variable),
+                                    height = ..density..), 
+                                scale = 3, 
+                                alpha = .6) +
+  scale_x_continuous(limits = c(0,6))+
+  geom_vline(xintercept = 3, col = "red",size = 2)+
+  geom_point(data = data.frame(list(variable = unique(m_new$variable), value = colMeans(m))),
+             aes(x = value, 
+                 y = as.factor(variable)),
+             size = 3, 
+             col  = "blue")+
+  theme(legend.position="none")+
+  viridis::scale_fill_viridis(discrete = TRUE)+
+  labs(x        = "Gía trị Likert",
+       y        = "Biến trong thang đo")
+       
+```
+
+### The Correlation coefficients analyst:
+
+```{r}
+library(corrplot)
+library(grDevices)
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+corrplot.mixed(cor(df_new %>%
+         select(c("SAFETY",
+                  "SUPPLYINPUT",
+                  "OFFER",
+                  "AWARENESS",
+                  "REVERSE_DECISION"))),
+               tl.cex = 0.6,
+               number.cex = 1.5,
+               lower = "number", 
+               upper = "circle",
+               tl.col = "black")
+```
+
+## Linear regression analyst:
+
+### Preparing:
+
+```{r, warning = F}
+#Recode the value of AGE variable:
+df_new<-df_new %>% 
+  mutate(AGE = recode(AGE,
+                      "Dưới 18 tuổi" = "A",
+                      "Từ 19 đến 30 tuổi" = "B",
+                      "Từ 31 đến 50 tuổi" = "C",
+                      "Từ 50 tuổi trở lên" = "D"))
+
+#Show the amount and percentage of group in AGE:
+tabyl(df_new$AGE)
+
+#Convert the RETURN_EW into factor class:
+df_new$RETURN_EW<-as.factor(df_new$RETURN_EW)
+```
+
+### Anova for comparing between groups:
+
+```{r}
+summary(reg1<-aov(AWARENESS~AGE,data = df_new))
+
+plot(TukeyHSD(reg1,conf.level=0.95), las=1 , col="brown")
+```
+
+### Create dummy variables:
+
+```{r}
+#Create a matrix contain 3 dummy variables:
+res <- model.matrix(~AGE, data = df_new)
+head(res[, -1])
+
+#Add dummy cols into dataset
+df_new<-df_new %>% 
+  mutate(A_B = res[,2],
+         A_C = res[,3],
+         A_D = res[,4])
+
+#Build model:
+model <- '
+  # Direct effects
+  AWARENESS ~ a*A_B  +  b*A_C + c*A_D
+  REVERSE_DECISION ~ d*AWARENESS
+
+  # Indirect effect:
+  indirect := d*(a + b + c)
+  
+   # Total effect:
+  total := indirect'
+
+reg4 <- sem(model,estimator = "ML",data = df_new)
+##Summarize the results
+summary(reg4, 
+        standardized = TRUE, 
+        fit.measures = TRUE)
+```
+
+### Choose the best models:
+
+```{r}
+library(BMA)
+#Define the dependent and independent variables:
+yvar<-df_new[,("REVERSE_DECISION")]
+
+xvars<-df_new[,c(          "SAFETY","OFFER","AWARENESS","SUPPLYINPUT")]
+
+bma = bicreg(xvars, yvar)
+#Summary and plot the results:
+summary(bma)
+imageplot.bma(bma)
+```
+
+### Define the final linear model:
+
+```{r,warning = F}
+#Assume X3 is a moderation variable:
+library(jtools)
+summ(reg2<-lm(REVERSE_DECISION ~ AWARENESS*AGE,data = df_new))
+
+```
+
+### Define the SEM model:
+
+```{r,warning = F}
+mediation_model <- '
+  AWARENESS ~ SAFETY  +  OFFER +  SUPPLYINPUT
+  REVERSE_DECISION ~ AWARENESS + SAFETY + OFFER'
+
+
+library(lavaan)
+reg3<-sem(mediation_model,
+          data = df_new, 
+          group = "MAJOR",
+          group.equal=c("thresholds", "loadings"))
+
+summary(reg3,
+        standardized = TRUE, 
+        fit.measures = TRUE)
+```
+
+### Some effected plots:
+
+```{r,warning = F}
+library(jtools)
+interactions::interact_plot(reg2, 
+                            pred = "AWARENESS", 
+                            modx = "AGE")
+
+effect_plot(reg2, 
+            pred = AWARENESS, 
+            interval = TRUE, 
+            plot.points = TRUE, 
+            jitter = 0.05)
+
+plot_summs(reg2)
+```
+
+
+## Check the model assumptions:
+
+### Test the varaince hypothesis:
+```{r}
+#Kiểm định phương sai:
+knitr::kable(anova(reg2), digits = 3)
+```
+
+### Test the variance hypothesis:
+
+```{r}
+#Kiểm định phương sai:
+library(car)
+ncvTest(reg2)
+spreadLevelPlot(reg2)
+
+## -->Vì p < 0 nên giả định phương sai không đổi bị phủ định. (Thường kết quả kiểm định này khá nhạy)
+```
+
+### Test for linearity hypothesis:
+
+```{r}
+# Kiểm định tính tuyến tính
+## Gỉa định mối tương quan là tuyến tính: 
+crPlots(reg2,
+        col.lines = c("blue", "red"),
+        ylab = "Component + Residual")
+```
+
+### Test for Autocorrelated Errors hypothesis:
+
+SỬ dụng phương pháp Durbin-Watson Test để kiểm định sự độc lập giữa các biến.
+
+-   Giả thuyết H0: Không có hiện tượng tự tương quan (Autocorrelation) trong mô hình.
+
+-   Gỉa thuyết H1: Có hiện tượng tự tương quan (Autocorrelation) trong mô hình.
+
+Vì p > 0 nên chấp nhận giả thuyết H0, bác bỏ H1 
+```{r}
+## Computes residual autocorrelations and generalized Durbin-Watson statistics and their bootstrapped p-values.
+durbinWatsonTest(reg2)
+```
+
+### Test for the Outlier hypothesis
+
+Sử dụng phương pháp Bonferroni test để kiếm tra các outliers. 
+
+Biểu đồ cho thấy các điểm có label là những điểm outliers. Ví dụ trong hình dưới đây điểm có số id là **170** là outlier.
+
+```{r}
+## Reports the Bonferroni p-values for testing each observation in turn to be a mean-shift outlier, based Studentized residuals in linear (t-tests), generalized linear models (normal tests), and linear mixed models.
+outlierTest(reg2)
+library(car)
+leveragePlots(reg2,
+              lwd = 3)
+
+
+```
+
+### Test for importance affect in model
+
+```{r,warning =F}
+#Evaluate the relative importance:
+##Use traditional method:
+library(relaimpo)
+metrics <-calc.relimp(reg2,
+                      type = c("lmg"))
+
+(x<-data.frame(name = c("SAFETY","OFFER","AWARENESS","RETURN_EW"),
+              value = metrics@lmg) %>% 
+  mutate(name = fct_reorder(name, 
+                            value)) %>%
+  ggplot( aes(x=name, 
+              y=value)) +
+    geom_bar(stat="identity", 
+             fill="#f68060", 
+             alpha=.6, 
+             width=.4) +
+    coord_flip() +
+    xlab("") +
+    theme_bw())
+
+##Using bootstrap:
+boot<-boot.relimp(reg2,
+                  b = 1000,
+                  type = c("lmg"),
+                  fixed = F)
+booteval.relimp(boot,
+                typesel = c("lmg"),
+                level = 0.9,
+                bty = "perc",
+                nodiff = T)
+```
+

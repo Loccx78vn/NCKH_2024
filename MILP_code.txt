@@ -1,0 +1,141 @@
+library(ompr)
+library(ompr.roi)
+library(ROI.plugin.glpk)
+
+model <- MIPModel() %>%
+  
+  # Add variables:
+  
+  ## Indicates the flow movement of e-waste orders:
+
+  add_variable(Yi[i], 
+               type = "binary",
+               i = 1:I) %>% 
+  add_variable(Yj[j], 
+               type = "binary",
+               j = 1:J) %>% 
+  add_variable(Yk[k], 
+               type = "binary",
+               k = 1:K) %>% 
+  add_variable(Yp[p], 
+               type = "binary",
+               p = 1:P) %>% 
+  add_variable(Yb[b], 
+               type = "binary",
+               b = 1:B) %>% 
+  
+  add_variable(X_TKN[i,j],
+               i = 1:I,
+               j = 1:J) %>% 
+  add_variable(X_TKL[j,k],
+               j = 1:J,
+               k = 1:K) %>% 
+  add_variable(X_NM[k,p], 
+               k = 1:K,
+               p = 1:P) %>%
+  add_variable(X_CA[j,p],
+               j = 1:J,
+               p = 1:P) %>%
+  add_variable(X_DN[p,b], 
+               p = 1:P,
+               b = 1:B) %>% 
+  
+  ## Indicates the penalty cost:
+  add_variable(UN[i], 
+               i = 1:I) %>%
+  
+  # Objective function for minimize the total cost of reverse logistics:
+  set_objective(
+    ## Indicates the total cost of implementing the facilities:
+    ## Indicates the total cost of implementing the facilities: 
+    sum_expr(Yi[i]*fi[i],i = 1:I) +
+      sum_expr(Yj[j]*fj[j],j = 1:J) +
+      sum_expr(Yk[k]*fk[k],k = 1:K) +
+      sum_expr(Yp[p]*fp[p],p = 1:P) +
+    
+    ## Indicates the penalty cost:
+    sum_expr(pen[i]*UN[i],i = 1:I) +
+      
+      ## Indicates the total cost of transporting the e-watse from TKN to TKL:
+      sum_expr(X_TKN[i,j]*c_TKN[i,j], 
+               i = 1:I,
+               j = 1:J) +
+      
+      ## Indicates the total cost of transporting the e-watse from TKL to NM (Manufacturer) firstly and then to CA (Port)
+      sum_expr(X_TKL[j,k]*c_TKL[j,k],
+               j = 1:J,
+               k = 1:K) +
+      sum_expr(X_NM[k,p]*c_NM[k,p], 
+               k = 1:K,
+               p = 1:P)+
+      
+      ## Indicates the total cost of transporting the e-watse from TKL to CA (Port) and do not need to go to NM:
+      sum_expr(X_CA[j,p]*c_CA[j,p], 
+               j = 1:J,
+               p = 1:P) +
+      
+      ## Indicates the total cost of transporting the e-watse from CA (Port) to HA (Brand companies):
+      sum_expr(X_DN[p,b]*c_DN[p,b], 
+               p = 1:P,
+               b = 1:B),"min") %>%
+  
+  # Add constraints of model:
+  ## For undemand are not served:
+  add_constraint(UN[i] == S[i] - sum_expr(X_TKN[i,j],j = 1:J),
+                 i = 1:I) %>% 
+  
+  ## For Xij = Xjk + Xjp: 
+  add_constraint(sum_expr(X_TKN[i,j],i = 1:I) >= sum_expr(X_TKL[j,k],k = 1:K) + sum_expr(X_CA[j,p],p = 1:P),j = 1:J) %>%
+  
+  ## For Xjk = Xkp:
+  add_constraint(sum_expr(X_TKL[j,k],j = 1:J) >= sum_expr(X_NM[k,p],p = 1:P),k = 1:K) %>%
+  
+  ## For Xkp + Xjp = Xpb:
+  add_constraint(sum_expr(X_DN[p,b],b = 1:B) <= sum_expr(X_TKL[k,p],k = 1:K) + sum_expr(X_CA[j,p],j = 1:J),p = 1:P) %>%
+  
+  ## For the capacity of TKN, TKL, NM, CA:
+  ### For penalty cost:
+  add_constraint(UN[i] >= wh[i]*Yi[i],i = 1:I) %>% 
+  ### With TKN:
+  add_constraint(sum_expr(X_TKN[i,j],
+                          j = 1:J) <= wh[i],
+                 i = 1:I) %>% 
+  add_constraint(sum_expr(X_TKN[i,j],
+                          i = 1:I) >= dc[j]*Yj[j],
+                 j = 1:J) %>% 
+  ### With TKL:
+  add_constraint(sum_expr(X_TKL[j,k],
+                          j = 1:J) >= mn[k]*Yk[k],
+                 k = 1:K) %>% 
+  add_constraint(sum_expr(X_TKL[j,k],k = 1:K) <= dc[j],
+                 j = 1:J)  %>% 
+  
+  ### With NM:
+  add_constraint(sum_expr(X_NM[k,p],
+                          k = 1:K) >= pt[p]*Yp[p],
+                 p = 1:P) %>% 
+  add_constraint(sum_expr(X_NM[k,p],p = 1:P) <= mn[k],
+                 k = 1:K) %>%
+  
+  ### With CA:
+  add_constraint(sum_expr(X_CA[j,p],
+                          j = 1:J) >= pt[p]*Yp[p],
+                 p = 1:P) %>% 
+  add_constraint(sum_expr(X_CA[j,p],p = 1:P) <= dc[j],
+                 j = 1:J) %>% 
+  
+  ### With DN:  
+  add_constraint(sum_expr(X_DN[p,b],
+                          b = 1:B) <= pt[p],
+                 p = 1:P) %>% 
+  add_constraint(sum_expr(X_DN[p,b],p = 1:P) >= br[b]*Yb[b],b = 1:B) %>%
+  
+  ### All are > 0:
+  add_constraint(X_TKN[i,j] >= 0, i = 1:I,j = 1:J) %>% 
+  add_constraint(X_TKL[j,k] >= 0, k = 1:K,j = 1:J) %>%
+  add_constraint(X_NM[k,p] >= 0, k = 1:K,p = 1:P) %>%
+  add_constraint(X_CA[j,p] >= 0, j = 1:J,p = 1:P) %>%
+  add_constraint(X_DN[p,b] >= 0, p = 1:P,b = 1:B) %>%
+  
+  #Solve the model:
+  solve_model(with_ROI(solver = "glpk", verbose = TRUE))

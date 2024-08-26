@@ -1,0 +1,176 @@
+---
+title: "Moderation_Part2"
+author: "Lộc"
+date: "2024-03-27"
+output:
+  word_document:
+    toc: yes
+  html_document:
+    theme: flatly
+    toc: yes
+    number_sections: yes
+    toc_float:
+      collapsed: yes
+    toc-location: left
+    code_folding: hide
+---
+
+# Input:
+
+```{r}
+#Call packages
+pacman::p_load(rio,
+               here,
+               janitor,
+               tidyverse,
+               dplyr,
+               magrittr,
+               ggplot2,
+               purrr,
+               lubridate,
+               mice,
+               plotly
+)
+
+#Data:
+library(readxl)
+df<- read_excel("C:/Users/locca/Downloads/Data_Rác thải điện tử.xlsx", 
+    sheet = "Đã mã hóa")
+```
+
+# Output:
+
+### Prepare the dataset:
+
+```{r,warning = F}
+df_new <-df %>% 
+  mutate(SAFETY = (SAFETY1+SAFETY2+SAFETY3+SAFETY4)/4,
+         OFFER = (OFFER1+OFFER2+OFFER3+OFFER4)/4,
+         AWARENESS = (AWARENESS1+AWARENESS2+AWARENESS3+AWARENESS4)/4,
+         SUPPLYINPUT =(SUPPLYINPUT1+SUPPLYINPUT2+SUPPLYINPUT3+SUPPLYINPUT4)/4,
+         REVERSE_DECISION = (REVERSE_DECISION1+REVERSE_DECISION2+REVERSE_DECISION3+REVERSE_DECISION4)/4)
+
+m<-df %>% select(contains(c("SAFETY",
+                            "OFFER",
+                            "SUPPLY",
+                            "AWARE",
+                            "REVERSE")))
+df_new<-df_new %>% 
+  select(-c(names(m)))
+
+  
+##Convert categorical cols in df_new to factor class:
+cols <- c(names(df %>%  select (-c(names(m)))))
+df_new[cols]<-lapply(df_new[cols],factor)
+
+##Check again:
+sapply(df_new, class)
+```
+
+## Mediation analyst approach:
+
+### Check for the assumption of multivariate normality
+
+```{r}
+## Using the {mvnormalTest} package for univariate (Shapiro-Wilk’s W) and multivariate normality (Mardia’s Multivariate Skewness and Kurtosis tests).
+library(mvnormalTest)
+check<-mardia(df_new %>% select(c("SAFETY",
+                                  "OFFER",
+                                  "AWARENESS",
+                                  "SUPPLYINPUT",
+                                  "REVERSE_DECISION")))
+
+## Check the Univariate normality test
+check$uv.shapiro
+
+## Check the Multivariate normaility test
+check$mv.test
+```
+
+### Modeling with {lavaan} package:
+
+```{r}
+##Define the model:
+library(lavaan)
+mediation_model <- '
+  # Direct effects
+  AWARENESS ~ a*SAFETY  +  b*OFFER + c*SUPPLYINPUT
+  REVERSE_DECISION ~ d*AWARENESS + e*SAFETY + f*OFFER
+
+  # Indirect effect:
+  indirect := d*(a + b + c)
+
+  # Total effect:
+  total := e + f + indirect'
+
+##Estimate the mediation model
+reg3 <- sem(mediation_model,estimator = "ML",data = df_new)
+##Summarize the results
+summary(reg3, 
+        standardized = TRUE, 
+        fit.measures = TRUE)
+
+##Plot the result:
+label1<-list(SAFETY = "Sự an toàn",
+             OFFER = "Sự ưu đãi",
+             SUPPLYINPUT = "Cung cấp nguyên liệu đầu vào",
+             AWARENESS = "Nhận thức xã hội",
+             REVERSE_DECISION = "Quyết định tham gia Logistics ngược")
+
+lavaanPlot::lavaanPlot(model = reg3,
+                       labels = label1, 
+                       node_options = list(shape = "box", fontname = "Helvetica"),
+                       edge_options = list(color = "grey"),
+                       coefs = TRUE)
+```
+
+### Modeling with {mediation} package:
+
+```{r}
+##Or we can use Preacher & Hayes (2004) approach:
+###Using meidation package:
+library(mediation)
+fitM <- lm(AWARENESS ~ SUPPLYINPUT + SAFETY + OFFER, 
+           data=df_new) 
+fitY <- lm(REVERSE_DECISION ~ AWARENESS + SAFETY + OFFER, 
+           data=df_new)
+fitMed <- mediate(fitM, 
+                  fitY,
+                  sims = 1000,
+                  boot = TRUE,
+                  treat = "SAFETY",
+                  mediator="AWARENESS")
+summary(fitMed)
+plot(fitMed)
+```
+
+The mediate function gives us:
+
+-   Average Direct Effects (ADE) means direct effect of SAFETY and OFFER on REVERSE_DECISION without AWARENESS.
+
+-   Combined indirect and direct effects (Total Effect) means total effect of SAFETY and OFFER on REVERSE_DECISION plus the indirect effect of AWARENESS.
+
+-   Average Causal Mediation Effects (ACME) = Total Effect - ADE
+
+-   The ratio of these estimates (Prop. Mediated).
+
+The ACME here is the indirect effect of M (total effect - direct effect) and thus this value tells us if our mediation effect is significant. (Source: [Alyssa Blair](https://ademos.people.uic.edu/Chapter14.html#2_mediation_analyses))
+
+```{r}
+# Load the necessary libraries
+library(ggplot2)
+
+# Create a bar plot to visualize the path coefficients
+ggplot(df_new, 
+       aes(x = path, 
+           y = coefficient, 
+           fill = path)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_text(aes(label = round(coefficient, 3)), vjust = -0.3, size = 4) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  ylab("Coefficient") +
+  xlab("Path") +
+  ggtitle("Mediation Analysis Results")
+
+```
