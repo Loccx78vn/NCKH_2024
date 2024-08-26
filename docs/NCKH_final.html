@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Cao Xuân Lộc">
+<meta name="dcterms.date" content="2024-08-27">
+<meta name="description" content="This is my tutorial of implementing the mediation analyst in R.">
+
+<title>Mediation analyst in R</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
+
+
+<script src="NCKH_final_files/libs/clipboard/clipboard.min.js"></script>
+<script src="NCKH_final_files/libs/quarto-html/quarto.js"></script>
+<script src="NCKH_final_files/libs/quarto-html/popper.min.js"></script>
+<script src="NCKH_final_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="NCKH_final_files/libs/quarto-html/anchor.min.js"></script>
+<link href="NCKH_final_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="NCKH_final_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="NCKH_final_files/libs/quarto-html/quarto-syntax-highlighting-dark.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<script src="NCKH_final_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="NCKH_final_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="NCKH_final_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="NCKH_final_files/libs/bootstrap/bootstrap-dark.min.css" rel="prefetch" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="NCKH_final_files/libs/htmltools-fill-0.5.8.1/fill.css" rel="stylesheet">
+<script src="NCKH_final_files/libs/htmlwidgets-1.6.4/htmlwidgets.js"></script>
+<script src="NCKH_final_files/libs/viz-1.8.2/viz.js"></script>
+<link href="NCKH_final_files/libs/DiagrammeR-styles-0.2/styles.css" rel="stylesheet">
+<script src="NCKH_final_files/libs/grViz-binding-1.0.9/grViz.js"></script>
+
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#input" id="toc-input" class="nav-link active" data-scroll-target="#input"><span class="header-section-number">1</span> Input:</a>
+  <ul class="collapse">
+  <li><a href="#prepare-the-dataset" id="toc-prepare-the-dataset" class="nav-link" data-scroll-target="#prepare-the-dataset"><span class="header-section-number">1.1</span> Prepare the dataset:</a>
+  <ul class="collapse">
+  <li><a href="#likert-chart" id="toc-likert-chart" class="nav-link" data-scroll-target="#likert-chart"><span class="header-section-number">1.1.1</span> Likert chart:</a></li>
+  <li><a href="#the-distribution-plot-of-likert-scales" id="toc-the-distribution-plot-of-likert-scales" class="nav-link" data-scroll-target="#the-distribution-plot-of-likert-scales"><span class="header-section-number">1.1.2</span> The distribution plot of likert scales:</a></li>
+  <li><a href="#the-correlation-coefficients-analyst" id="toc-the-correlation-coefficients-analyst" class="nav-link" data-scroll-target="#the-correlation-coefficients-analyst"><span class="header-section-number">1.1.3</span> The Correlation coefficients analyst:</a></li>
+  </ul></li>
+  </ul></li>
+  <li><a href="#output" id="toc-output" class="nav-link" data-scroll-target="#output"><span class="header-section-number">2</span> Output:</a>
+  <ul class="collapse">
+  <li><a href="#mediation-analyst-approach" id="toc-mediation-analyst-approach" class="nav-link" data-scroll-target="#mediation-analyst-approach"><span class="header-section-number">2.1</span> Mediation analyst approach:</a>
+  <ul class="collapse">
+  <li><a href="#check-assumptions-before-modeling" id="toc-check-assumptions-before-modeling" class="nav-link" data-scroll-target="#check-assumptions-before-modeling"><span class="header-section-number">2.1.1</span> Check assumptions before modeling:</a></li>
+  </ul></li>
+  <li><a href="#implementing-in-r" id="toc-implementing-in-r" class="nav-link" data-scroll-target="#implementing-in-r"><span class="header-section-number">2.2</span> Implementing in R:</a>
+  <ul class="collapse">
+  <li><a href="#modeling-with-lavaan-package" id="toc-modeling-with-lavaan-package" class="nav-link" data-scroll-target="#modeling-with-lavaan-package"><span class="header-section-number">2.2.1</span> Modeling with {lavaan} package:</a></li>
+  <li><a href="#modeling-with-mediation-package" id="toc-modeling-with-mediation-package" class="nav-link" data-scroll-target="#modeling-with-mediation-package"><span class="header-section-number">2.2.2</span> Modeling with {mediation} package:</a></li>
+  <li><a href="#check-assumptions-after-modeling" id="toc-check-assumptions-after-modeling" class="nav-link" data-scroll-target="#check-assumptions-after-modeling"><span class="header-section-number">2.2.3</span> Check assumptions after modeling:</a></li>
+  </ul></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<div class="quarto-title-block"><div><h1 class="title">Mediation analyst in R</h1><button type="button" class="btn code-tools-button dropdown-toggle" id="quarto-code-tools-menu" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi"></i> Code</button><ul class="dropdown-menu dropdown-menu-end" aria-labelelledby="quarto-code-tools-menu"><li><a id="quarto-show-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Show All Code</a></li><li><a id="quarto-hide-all-code" class="dropdown-item" href="javascript:void(0)" role="button">Hide All Code</a></li><li><hr class="dropdown-divider"></li><li><a id="quarto-view-source" class="dropdown-item" href="javascript:void(0)" role="button">View Source</a></li></ul></div></div>
+<p class="subtitle lead">Việt Nam, 2024</p>
+  <div class="quarto-categories">
+    <div class="quarto-category">Reverse Logistics</div>
+    <div class="quarto-category">Supply Chain Management</div>
+  </div>
+  </div>
+
+<div>
+  <div class="description">
+    This is my tutorial of implementing the mediation analyst in R.
+  </div>
+</div>
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Cao Xuân Lộc </p>
+          </div>
+  </div>
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">August 27, 2024</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="input" class="level1" data-number="1">
+<h1 data-number="1"><span class="header-section-number">1</span> Input:</h1>
+<p>I cannot share the data so you can see figures below illustrated how data looks like.</p>
+<section id="prepare-the-dataset" class="level2" data-number="1.1">
+<h2 data-number="1.1" class="anchored" data-anchor-id="prepare-the-dataset"><span class="header-section-number">1.1</span> Prepare the dataset:</h2>
+<p>Likert data is a type of ordinal data used in surveys and questionnaires to measure attitudes, opinions, or perceptions. Named after psychologist Rensis Likert, who developed the scale, it typically involves respondents indicating their level of agreement or disagreement with a series of statements on a scale.</p>
+<p><strong>Key Features:</strong></p>
+<ol type="1">
+<li><p><strong>Scale Structure:</strong> Likert scales often use a 5-point or 7-point scale, ranging from strong disagreement to strong agreement. For example, a 5-point scale might include options like “Strongly Disagree,” “Disagree,” “Neutral,” “Agree,” and “Strongly Agree.”</p></li>
+<li><p><strong>Ordinal Nature:</strong> The data collected are ordinal, meaning they represent ordered categories, but the intervals between them are not necessarily equal. For example, the difference between “Agree” and “Strongly Agree” isn’t quantifiable in the same way as numerical data.</p></li>
+<li><p><strong>Data Analysis:</strong> Likert data is often analyzed using descriptive statistics like means and standard deviations, as well as inferential statistics to explore relationships or differences between groups. While some analyses treat the data as interval-level for convenience, it’s crucial to remember its ordinal nature.</p></li>
+<li><p><strong>Applications:</strong> Likert data is commonly used in social science research, customer satisfaction surveys, and employee feedback forms to gauge attitudes and opinions.</p></li>
+</ol>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>df_new <span class="ot">&lt;-</span>df <span class="sc">%&gt;%</span> </span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">SAFETY =</span> (SAFETY1<span class="sc">+</span>SAFETY2<span class="sc">+</span>SAFETY3<span class="sc">+</span>SAFETY4)<span class="sc">/</span><span class="dv">4</span>,</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>         <span class="at">OFFER =</span> (OFFER1<span class="sc">+</span>OFFER2<span class="sc">+</span>OFFER3<span class="sc">+</span>OFFER4)<span class="sc">/</span><span class="dv">4</span>,</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>         <span class="at">AWARENESS =</span> (AWARENESS1<span class="sc">+</span>AWARENESS2<span class="sc">+</span>AWARENESS3<span class="sc">+</span>AWARENESS4)<span class="sc">/</span><span class="dv">4</span>,</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>         <span class="at">SUPPLYINPUT =</span>(SUPPLYINPUT1<span class="sc">+</span>SUPPLYINPUT2<span class="sc">+</span>SUPPLYINPUT3<span class="sc">+</span>SUPPLYINPUT4)<span class="sc">/</span><span class="dv">4</span>,</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">REVERSE_DECISION =</span> (REVERSE_DECISION1<span class="sc">+</span>REVERSE_DECISION2<span class="sc">+</span>REVERSE_DECISION3<span class="sc">+</span>REVERSE_DECISION4)<span class="sc">/</span><span class="dv">4</span>)</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>m<span class="ot">&lt;-</span>df <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="fu">contains</span>(<span class="fu">c</span>(<span class="st">"SAFETY"</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>                            <span class="st">"OFFER"</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>                            <span class="st">"SUPPLY"</span>,</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>                            <span class="st">"AWARE"</span>,</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>                            <span class="st">"REVERSE"</span>)))</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>df_new<span class="ot">&lt;-</span>df_new <span class="sc">%&gt;%</span> </span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">names</span>(m))</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="do">##Convert categorical cols in df_new to factor class:</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">names</span>(df <span class="sc">%&gt;%</span>  <span class="fu">select</span> (<span class="sc">-</span><span class="fu">c</span>(<span class="fu">names</span>(m)))))</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>df_new[cols]<span class="ot">&lt;-</span><span class="fu">lapply</span>(df_new[cols],factor)</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="do">##Check again:</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(df_new)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 208
+Columns: 13
+$ SEX              &lt;fct&gt; Nam, Nữ, Nam, Nam, Nữ, Nam, Nữ, Nam, Nữ, Nữ, Nữ, Nam,…
+$ AGE              &lt;fct&gt; Từ 19 đến 30 tuổi, Từ 19 đến 30 tuổi, Từ 19 đến 30 tu…
+$ MAJOR            &lt;fct&gt; Trí thức, Học sinh - Sinh viên, Học sinh - Sinh viên,…
+$ STATUS           &lt;fct&gt; Đã có gia đình, Độc thân, Độc thân, Đang có người yêu…
+$ RETURN_EW        &lt;fct&gt; 1, 1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+$ PRE_METHOD       &lt;fct&gt; Vứt rác, Bán ve chai, Vứt rác, Bán ve chai, Bán ve ch…
+$ JOIN_HAND        &lt;fct&gt; 1, 1, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1, 1,…
+$ PRIOR            &lt;fct&gt; Hoàn trả doanh nghiệp, Hoàn trả doanh nghiệp, Không b…
+$ SAFETY           &lt;dbl&gt; 4.00, 3.75, 3.75, 3.25, 3.00, 5.00, 4.00, 4.00, 3.50,…
+$ OFFER            &lt;dbl&gt; 3.00, 3.50, 3.25, 3.75, 3.00, 5.00, 4.00, 4.00, 4.00,…
+$ AWARENESS        &lt;dbl&gt; 3.00, 3.75, 3.25, 3.50, 3.00, 5.00, 3.50, 4.00, 4.75,…
+$ SUPPLYINPUT      &lt;dbl&gt; 3.00, 4.50, 3.75, 4.00, 3.00, 5.00, 3.25, 4.00, 4.75,…
+$ REVERSE_DECISION &lt;dbl&gt; 3.00, 2.50, 3.25, 2.75, 3.00, 5.00, 4.00, 4.00, 4.75,…</code></pre>
+</div>
+</div>
+<section id="likert-chart" class="level3" data-number="1.1.1">
+<h3 data-number="1.1.1" class="anchored" data-anchor-id="likert-chart"><span class="header-section-number">1.1.1</span> Likert chart:</h3>
+<p>Overall, Likert scales are a popular and useful tool for capturing subjective information, though the ordinal nature of the data requires careful consideration in analysis and interpretation.</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="Rplot.png" class="img-fluid figure-img" width="616"></p>
+</figure>
+</div>
+</section>
+<section id="the-distribution-plot-of-likert-scales" class="level3" data-number="1.1.2">
+<h3 data-number="1.1.2" class="anchored" data-anchor-id="the-distribution-plot-of-likert-scales"><span class="header-section-number">1.1.2</span> The distribution plot of likert scales:</h3>
+<p>In other hand, we can use a distribution plot of Likert data visualizes how responses are distributed across the different scale points. Given the ordinal nature of Likert data, such a plot helps to understand the frequency or proportion of responses for each category on the scale.</p>
+<p>Steps to Create a Distribution Plot for Likert Data:</p>
+<ol type="1">
+<li><p><strong>Collect Data</strong>: Gather your Likert scale responses from the survey or questionnaire.</p></li>
+<li><p><strong>Tabulate Responses</strong>: Count the number of responses for each Likert scale point (e.g., “Strongly Disagree” to “Strongly Agree”).</p></li>
+<li><p><strong>Choose a Visualization Tool</strong>: You can use various tools like Excel, Google Sheets, or statistical software (e.g., R, Python’s Matplotlib/Seaborn) to create the plot.</p></li>
+<li><p><strong>Plot the Data</strong>: you can consider between <em>Bar Chart</em> - where each bar represents the frequency or percentage of responses for each scale point or <em>Pie Chart</em> which shows the proportion of responses for each scale point. If you are dealing with multiple groups or categories, <em>Stacked Bar Chart</em> maybe useful where bars are segmented to show the distribution across the Likert scale for each group.</p></li>
+</ol>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="NCKH_final_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+<section id="the-correlation-coefficients-analyst" class="level3" data-number="1.1.3">
+<h3 data-number="1.1.3" class="anchored" data-anchor-id="the-correlation-coefficients-analyst"><span class="header-section-number">1.1.3</span> The Correlation coefficients analyst:</h3>
+<p>A correlation test is used to determine the strength and direction of the relationship between two continuous variables. It assesses whether changes in one variable are associated with changes in another variable.</p>
+<div class="cell">
+<div class="cell-output-display">
+<p><img src="NCKH_final_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="output" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Output:</h1>
+<section id="mediation-analyst-approach" class="level2" data-number="2.1">
+<h2 data-number="2.1" class="anchored" data-anchor-id="mediation-analyst-approach"><span class="header-section-number">2.1</span> Mediation analyst approach:</h2>
+<p>A mediation model examines whether the effect of an independent variable (X) on a dependent variable (Y) is transmitted through a third variable, called a mediator (M). For the mediation analysis to be valid and reliable, certain assumptions must be met. Here are the key assumptions:</p>
+<p><strong>Steps in Mediation Analysis:</strong></p>
+<ol type="1">
+<li><strong>Test the Total Effect:</strong>
+<ul>
+<li>Examine the direct relationship between the independent variable (X) and the dependent variable (Y).</li>
+</ul></li>
+<li><strong>Test the Path from X to M:</strong>
+<ul>
+<li>Analyze the relationship between the independent variable (X) and the mediator (M).</li>
+</ul></li>
+<li><strong>Test the Path from M to Y:</strong>
+<ul>
+<li>Assess the relationship between the mediator (M) and the dependent variable (Y), controlling for the independent variable (X).</li>
+</ul></li>
+<li><strong>Test the Direct Effect:</strong>
+<ul>
+<li>Examine the direct effect of the independent variable (X) on the dependent variable (Y) while controlling for the mediator (M).</li>
+</ul></li>
+<li><strong>Compare Effects:</strong>
+<ul>
+<li>Determine if the mediation effect (indirect effect) is significant and if it explains the relationship between X and Y beyond the direct effect.</li>
+</ul></li>
+</ol>
+<p><strong>Statistical Methods:</strong></p>
+<ul>
+<li><strong>Baron and Kenny’s Approach:</strong> Traditional method involving sequential regression analyses to test the above paths.</li>
+<li><strong>Bootstrapping:</strong> A resampling technique used to estimate the confidence intervals of the indirect effect, often considered more robust than Baron and Kenny’s approach.</li>
+<li><strong>Structural Equation Modeling (SEM):</strong> A comprehensive method that can simultaneously estimate multiple mediation paths and their relationships.</li>
+</ul>
+<p>By meeting these assumptions and carefully testing the mediation model, researchers can better understand the mechanisms through which an independent variable influences a dependent variable, providing deeper insights into the underlying processes.</p>
+<section id="check-assumptions-before-modeling" class="level3" data-number="2.1.1">
+<h3 data-number="2.1.1" class="anchored" data-anchor-id="check-assumptions-before-modeling"><span class="header-section-number">2.1.1</span> Check assumptions before modeling:</h3>
+<p><strong>Assumptions of a Mediation Model:</strong></p>
+<ol type="1">
+<li><strong>Linearity:</strong>
+<ul>
+<li>The relationships among the independent variable (X), mediator (M), and dependent variable (Y) should be linear. This means that the effects are additive and can be represented by straight lines in a scatterplot.</li>
+</ul></li>
+<li><strong>Independence of Errors:</strong>
+<ul>
+<li>The residuals or errors in the regression equations should be independent of each other. This assumption ensures that the model is not influenced by correlated errors between observations.</li>
+</ul></li>
+<li><strong>Homoscedasticity:</strong>
+<ul>
+<li>The variance of the residuals should be constant across all levels of the independent and mediator variables. In other words, the spread of errors should be similar across all values of X and M.</li>
+</ul></li>
+<li><strong>Normality of Errors:</strong>
+<ul>
+<li>The residuals or errors in the regression models should be normally distributed. This assumption helps in making valid inferences about the model parameters and their statistical significance.</li>
+</ul></li>
+<li><strong>No Multicollinearity:</strong>
+<ul>
+<li>There should be no high correlation among the independent variables, including the mediator variable, as high multicollinearity can make it difficult to isolate the individual effects of each variable.</li>
+</ul></li>
+<li><strong>Measurement Validity:</strong>
+<ul>
+<li>The variables should be measured accurately. This means the mediator (M) should genuinely capture the concept it is supposed to represent, and there should be reliable and valid measures for X, M, and Y.</li>
+</ul></li>
+<li><strong>Temporal Ordering:</strong>
+<ul>
+<li>For causal inferences, it is crucial that the independent variable (X) precedes the mediator (M), which in turn precedes the dependent variable (Y). This temporal ordering ensures that changes in X can affect M, which then influences Y.</li>
+</ul></li>
+</ol>
+</section>
+</section>
+<section id="implementing-in-r" class="level2" data-number="2.2">
+<h2 data-number="2.2" class="anchored" data-anchor-id="implementing-in-r"><span class="header-section-number">2.2</span> Implementing in R:</h2>
+<div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="do">## Using the {mvnormalTest} package for univariate (Shapiro-Wilk’s W) and multivariate normality (Mardia’s Multivariate Skewness and Kurtosis tests).</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mvnormalTest)</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>check<span class="ot">&lt;-</span><span class="fu">mardia</span>(df_new <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="fu">c</span>(<span class="st">"SAFETY"</span>,</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">"OFFER"</span>,</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">"AWARENESS"</span>,</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">"SUPPLYINPUT"</span>,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">"REVERSE_DECISION"</span>)))</span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="do">## Check the Univariate normality test</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>check<span class="sc">$</span>uv.shapiro</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="do">## Check the Multivariate normaility test</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>check<span class="sc">$</span>mv.test</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell quarto-layout-panel">
+<div class="quarto-layout-row quarto-layout-valign-top">
+<div class="cell-output cell-output-stdout quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<pre><code>                 W      p-value UV.Normality
+SAFETY           0.8643 0       No          
+OFFER            0.9484 0       No          
+AWARENESS        0.8844 0       No          
+SUPPLYINPUT      0.8857 0       No          
+REVERSE_DECISION 0.9473 0       No          </code></pre>
+</div>
+<div class="cell-output cell-output-stdout quarto-layout-cell" style="flex-basis: 50.0%;justify-content: center;">
+<pre><code>          Test Statistic p-value Result
+1     Skewness  221.3551       0     NO
+2     Kurtosis   12.3111       0     NO
+3 MV Normality      &lt;NA&gt;    &lt;NA&gt;     NO</code></pre>
+</div>
+</div>
+</div>
+</div>
+<section id="modeling-with-lavaan-package" class="level3" data-number="2.2.1">
+<h3 data-number="2.2.1" class="anchored" data-anchor-id="modeling-with-lavaan-package"><span class="header-section-number">2.2.1</span> Modeling with {lavaan} package:</h3>
+<p>The <code>lavaan</code> package in R is a powerful tool for structural equation modeling (SEM). It allows users to specify, estimate, and evaluate complex statistical models that include latent variables, measurement models, and path models. Here’s an overview of the <code>lavaan</code> package and its key functionalities:</p>
+<p>About model <strong>Structural Equation Modeling (SEM)</strong> in <code>lavaan</code>, it will estimate:</p>
+<ul>
+<li><strong>Confirmatory Factor Analysis (CFA):</strong> Tests how well a set of observed variables represents underlying latent constructs.</li>
+<li><strong>Path Analysis:</strong> Examines direct and indirect relationships among variables.</li>
+<li><strong>Latent Variable Models:</strong> Models that include unobserved (latent) variables alongside observed variables.</li>
+<li><strong>Mixture Models:</strong> Handles latent variable models with multiple subpopulations.</li>
+</ul>
+<p>Beside, the estimated algorithm, <code>lavaan</code> use 3 methods including Maximum Likelihood (ML), Generalized Least Squares (GLS), and Robust Maximum Likelihood (MLR).</p>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Tips for you !!!
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>You can mention it by argument <code>estimator</code> in function <code>lavaan::sem</code>.</p>
+</div>
+</div>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Define the model:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lavaan)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>mediation_model <span class="ot">&lt;-</span> <span class="st">'</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="st">  # Direct effects</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="st">  AWARENESS ~ a*SAFETY  +  b*OFFER + c*SUPPLYINPUT</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="st">  REVERSE_DECISION ~ d*AWARENESS + e*SAFETY + f*OFFER</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="st">  # Indirect effect:</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="st">  indirect := d*(a + b + c)</span></span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a><span class="st">  # Total effect:</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a><span class="st">  total := e + f + indirect'</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a><span class="do">##Estimate the mediation model</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>reg3 <span class="ot">&lt;-</span> <span class="fu">sem</span>(mediation_model,<span class="at">estimator =</span> <span class="st">"ML"</span>,<span class="at">data =</span> df_new)</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a><span class="do">##Summarize the results</span></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(reg3, </span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>        <span class="at">standardized =</span> <span class="cn">TRUE</span>, </span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>        <span class="at">fit.measures =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>lavaan 0.6.14 ended normally after 1 iteration
+
+  Estimator                                         ML
+  Optimization method                           NLMINB
+  Number of model parameters                         8
+
+  Number of observations                           208
+
+Model Test User Model:
+                                                      
+  Test statistic                                 2.839
+  Degrees of freedom                                 1
+  P-value (Chi-square)                           0.092
+
+Model Test Baseline Model:
+
+  Test statistic                               452.569
+  Degrees of freedom                                 7
+  P-value                                        0.000
+
+User Model versus Baseline Model:
+
+  Comparative Fit Index (CFI)                    0.996
+  Tucker-Lewis Index (TLI)                       0.971
+
+Loglikelihood and Information Criteria:
+
+  Loglikelihood user model (H0)               -345.801
+  Loglikelihood unrestricted model (H1)       -344.381
+                                                      
+  Akaike (AIC)                                 707.601
+  Bayesian (BIC)                               734.302
+  Sample-size adjusted Bayesian (SABIC)        708.954
+
+Root Mean Square Error of Approximation:
+
+  RMSEA                                          0.094
+  90 Percent confidence interval - lower         0.000
+  90 Percent confidence interval - upper         0.231
+  P-value H_0: RMSEA &lt;= 0.050                    0.176
+  P-value H_0: RMSEA &gt;= 0.080                    0.700
+
+Standardized Root Mean Square Residual:
+
+  SRMR                                           0.011
+
+Parameter Estimates:
+
+  Standard errors                             Standard
+  Information                                 Expected
+  Information saturated (h1) model          Structured
+
+Regressions:
+                     Estimate  Std.Err  z-value  P(&gt;|z|)   Std.lv  Std.all
+  AWARENESS ~                                                             
+    SAFETY     (a)      0.153    0.048    3.197    0.001    0.153    0.154
+    OFFER      (b)      0.185    0.042    4.401    0.000    0.185    0.186
+    SUPPLYINPU (c)      0.614    0.047   12.967    0.000    0.614    0.636
+  REVERSE_DECISION ~                                                      
+    AWARENESS  (d)      0.458    0.077    5.922    0.000    0.458    0.435
+    SAFETY     (e)      0.218    0.071    3.068    0.002    0.218    0.208
+    OFFER      (f)      0.176    0.066    2.668    0.008    0.176    0.168
+
+Variances:
+                   Estimate  Std.Err  z-value  P(&gt;|z|)   Std.lv  Std.all
+   .AWARENESS         0.206    0.020   10.198    0.000    0.206    0.238
+   .REVERSE_DECISI    0.463    0.045   10.198    0.000    0.463    0.484
+
+Defined Parameters:
+                   Estimate  Std.Err  z-value  P(&gt;|z|)   Std.lv  Std.all
+    indirect          0.436    0.076    5.754    0.000    0.436    0.425
+    total             0.830    0.061   13.658    0.000    0.830    0.802</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Plot the result:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>label1<span class="ot">&lt;-</span><span class="fu">list</span>(<span class="at">SAFETY =</span> <span class="st">"Sự an toàn"</span>,</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>             <span class="at">OFFER =</span> <span class="st">"Sự ưu đãi"</span>,</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>             <span class="at">SUPPLYINPUT =</span> <span class="st">"Cung cấp nguyên liệu đầu vào"</span>,</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>             <span class="at">AWARENESS =</span> <span class="st">"Nhận thức xã hội"</span>,</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>             <span class="at">REVERSE_DECISION =</span> <span class="st">"Quyết định tham gia Logistics ngược"</span>)</span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>lavaanPlot<span class="sc">::</span><span class="fu">lavaanPlot</span>(<span class="at">model =</span> reg3,</span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>                       <span class="at">labels =</span> label1, </span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>                       <span class="at">node_options =</span> <span class="fu">list</span>(<span class="at">shape =</span> <span class="st">"box"</span>, <span class="at">fontname =</span> <span class="st">"Helvetica"</span>),</span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>                       <span class="at">edge_options =</span> <span class="fu">list</span>(<span class="at">color =</span> <span class="st">"grey"</span>),</span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>                       <span class="at">coefs =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<div class="grViz html-widget html-fill-item" id="htmlwidget-a31c9308dbfae25f9269" style="width:100%;height:464px;"></div>
+<script type="application/json" data-for="htmlwidget-a31c9308dbfae25f9269">{"x":{"diagram":" digraph plot { \n graph [ overlap = true, fontsize = 10 ] \n node [ shape = box, fontname = Helvetica ] \n node [shape = box] \n SAFETY; OFFER; SUPPLYINPUT; AWARENESS; REVERSE_DECISION \n node [shape = oval] \n  \n SAFETY [label = \"Sự an toàn\"]\nOFFER [label = \"Sự ưu đãi\"]\nSUPPLYINPUT [label = \"Cung cấp nguyên liệu đầu vào\"]\nAWARENESS [label = \"Nhận thức xã hội\"]\nREVERSE_DECISION [label = \"Quyết định tham gia Logistics ngược\"] \n edge [ color = grey ] \n SAFETY->AWARENESS [label = \"0.15\"] OFFER->AWARENESS [label = \"0.19\"] SUPPLYINPUT->AWARENESS [label = \"0.61\"] AWARENESS->REVERSE_DECISION [label = \"0.46\"] SAFETY->REVERSE_DECISION [label = \"0.22\"] OFFER->REVERSE_DECISION [label = \"0.18\"]  \n}","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+</section>
+<section id="modeling-with-mediation-package" class="level3" data-number="2.2.2">
+<h3 data-number="2.2.2" class="anchored" data-anchor-id="modeling-with-mediation-package"><span class="header-section-number">2.2.2</span> Modeling with {mediation} package:</h3>
+<p>The <code>mediation</code> package in R is designed to facilitate the analysis of mediation models. Mediation models are used to understand the process through which an independent variable (IV) influences a dependent variable (DV) via one or more mediator variables. Here’s a brief summary of what the package offers:</p>
+<ol type="1">
+<li><p><strong>Core Functionality</strong>: The primary function of the mediation package is <code>mediate()</code>, which estimates the causal mediation effects and provides statistical tests to evaluate the significance of these effects.</p></li>
+<li><p><strong>Components</strong>:</p>
+<ul>
+<li><strong>Model Specification</strong>: You need to fit two models—one for the mediator and one for the outcome variable. The mediation package uses these models to estimate the direct and indirect effects.</li>
+<li><strong>Bootstrapping</strong>: The package supports bootstrapping methods to compute confidence intervals for the indirect effects, enhancing robustness and reliability.</li>
+</ul></li>
+<li><p><strong>Key Features</strong>:</p>
+<ul>
+<li><strong>Estimation of Effects</strong>: Provides estimates for direct, indirect, and total effects, allowing for a comprehensive understanding of mediation.</li>
+<li><strong>Sensitivity Analysis</strong>: Offers tools to assess the sensitivity of the mediation effect to potential violations of assumptions.</li>
+<li><strong>Multiple Mediators</strong>: Supports models with multiple mediators, including interactions among them.</li>
+</ul></li>
+<li><p><strong>Output</strong>:</p>
+<ul>
+<li><strong>Summary Tables</strong>: Produces tables summarizing the estimated effects and their significance.</li>
+<li><strong>Visualization</strong>: Tools to visualize mediation effects, helping to interpret and present findings.</li>
+</ul></li>
+<li><p><strong>Usage</strong>:</p>
+<ul>
+<li>You typically fit a regression model for the mediator and another for the outcome, then use <code>mediate()</code> to analyze the mediation process.</li>
+</ul></li>
+</ol>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="do">##Or we can use Preacher &amp; Hayes (2004) approach:</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="do">###Using meidation package:</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mediation)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>fitM <span class="ot">&lt;-</span> <span class="fu">lm</span>(AWARENESS <span class="sc">~</span> SUPPLYINPUT <span class="sc">+</span> SAFETY <span class="sc">+</span> OFFER, </span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>           <span class="at">data=</span>df_new) </span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>fitY <span class="ot">&lt;-</span> <span class="fu">lm</span>(REVERSE_DECISION <span class="sc">~</span> AWARENESS <span class="sc">+</span> SAFETY <span class="sc">+</span> OFFER, </span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a>           <span class="at">data=</span>df_new)</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>fitMed <span class="ot">&lt;-</span> <span class="fu">mediate</span>(fitM, </span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>                  fitY,</span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>                  <span class="at">sims =</span> <span class="dv">1000</span>,</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>                  <span class="at">boot =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb9-12"><a href="#cb9-12" aria-hidden="true" tabindex="-1"></a>                  <span class="at">treat =</span> <span class="st">"SAFETY"</span>,</span>
+<span id="cb9-13"><a href="#cb9-13" aria-hidden="true" tabindex="-1"></a>                  <span class="at">mediator=</span><span class="st">"AWARENESS"</span>)</span>
+<span id="cb9-14"><a href="#cb9-14" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fitMed)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Causal Mediation Analysis 
+
+Nonparametric Bootstrap Confidence Intervals with the Percentile Method
+
+               Estimate 95% CI Lower 95% CI Upper p-value   
+ACME             0.0700       0.0221         0.14   0.004 **
+ADE              0.2178       0.0517         0.38   0.006 **
+Total Effect     0.2878       0.1574         0.43   0.002 **
+Prop. Mediated   0.2432       0.0625         0.67   0.006 **
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Sample Size Used: 208 
+
+
+Simulations: 1000 </code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(fitMed)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output-display">
+<p><img src="NCKH_final_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid" width="672"></p>
+</div>
+</div>
+<p>The mediate function gives us:</p>
+<ul>
+<li><p>Average Direct Effects (ADE) means direct effect of SAFETY and OFFER on REVERSE_DECISION without AWARENESS.</p></li>
+<li><p>Combined indirect and direct effects (Total Effect) means total effect of SAFETY and OFFER on REVERSE_DECISION plus the indirect effect of AWARENESS.</p></li>
+<li><p>Average Causal Mediation Effects (ACME) = Total Effect - ADE</p></li>
+<li><p>The ratio of these estimates (Prop. Mediated).</p></li>
+</ul>
+<p>The ACME here is the indirect effect of M (total effect - direct effect) and thus this value tells us if our mediation effect is significant <span class="citation" data-cites="alyssablair">(<a href="#ref-alyssablair" role="doc-biblioref">Alyssa Blair, n.d.</a>)</span>.</p>
+<p>In summary, the <strong>mediation</strong> package in R is a robust tool for analyzing and interpreting the pathways through which variables influence each other, providing both statistical estimates and tools for visualization and sensitivity analysis.</p>
+</section>
+<section id="check-assumptions-after-modeling" class="level3" data-number="2.2.3">
+<h3 data-number="2.2.3" class="anchored" data-anchor-id="check-assumptions-after-modeling"><span class="header-section-number">2.2.3</span> Check assumptions after modeling:</h3>
+<p>The <code>gvlma</code> function in R is part of the <code>gvlma</code> package, which stands for “Global Validation of Linear Models Assumptions.” This function is used to perform a comprehensive diagnostic check of the assumptions underlying linear regression models. The <code>gvlma</code> package evaluates several key assumptions to ensure the validity of a linear regression model.</p>
+<p>A lot of test <code>gvlma</code> can do such as:</p>
+<ul>
+<li><strong>Linearity:</strong> Checks if the relationship between predictors and the outcome is linear.</li>
+<li><strong>Homoscedasticity:</strong> Assesses if the residuals have constant variance.</li>
+<li><strong>Independence:</strong> Tests if the residuals are independent.</li>
+<li><strong>Normality of Residuals:</strong> Checks if residuals are normally distributed.</li>
+<li><strong>Model Specification:</strong> Evaluates whether the model is correctly specified.</li>
+</ul>
+<div class="cell">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gvlma)</span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="fu">gvlma</span>(fitM)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = AWARENESS ~ SUPPLYINPUT + SAFETY + OFFER, data = df_new)
+
+Coefficients:
+(Intercept)  SUPPLYINPUT       SAFETY        OFFER  
+     0.2243       0.6135       0.1528       0.1852  
+
+
+ASSESSMENT OF THE LINEAR MODEL ASSUMPTIONS
+USING THE GLOBAL TEST ON 4 DEGREES-OF-FREEDOM:
+Level of Significance =  0.05 
+
+Call:
+ gvlma(x = fitM) 
+
+                       Value p-value                Decision
+Global Stat        4.2262378 0.37625 Assumptions acceptable.
+Skewness           0.0004398 0.98327 Assumptions acceptable.
+Kurtosis           2.7098541 0.09973 Assumptions acceptable.
+Link Function      1.2198735 0.26939 Assumptions acceptable.
+Heteroscedasticity 0.2960704 0.58636 Assumptions acceptable.</code></pre>
+</div>
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">gvlma</span>(fitY)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Call:
+lm(formula = REVERSE_DECISION ~ AWARENESS + SAFETY + OFFER, data = df_new)
+
+Coefficients:
+(Intercept)    AWARENESS       SAFETY        OFFER  
+     0.2296       0.4580       0.2178       0.1760  
+
+
+ASSESSMENT OF THE LINEAR MODEL ASSUMPTIONS
+USING THE GLOBAL TEST ON 4 DEGREES-OF-FREEDOM:
+Level of Significance =  0.05 
+
+Call:
+ gvlma(x = fitY) 
+
+                       Value   p-value                   Decision
+Global Stat        1.271e+02 0.000e+00 Assumptions NOT satisfied!
+Skewness           5.919e+01 1.432e-14 Assumptions NOT satisfied!
+Kurtosis           6.787e+01 2.220e-16 Assumptions NOT satisfied!
+Link Function      8.530e-04 9.767e-01    Assumptions acceptable.
+Heteroscedasticity 2.851e-02 8.659e-01    Assumptions acceptable.</code></pre>
+</div>
+</div>
+<!-- -->
+
+
+</section>
+</section>
+</section>
+
+<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" role="list">
+<div id="ref-alyssablair" class="csl-entry" role="listitem">
+Alyssa Blair. n.d. <span>“Chapter 14: Mediation and Moderation.”</span> <a href="https://ademos.people.uic.edu/Chapter14.html#25_interpreting_mediation_results">https://ademos.people.uic.edu/Chapter14.html#25_interpreting_mediation_results</a>.
+</div>
+</div></section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const disableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'prefetch';
+    }
+  }
+  const enableStylesheet = (stylesheets) => {
+    for (let i=0; i < stylesheets.length; i++) {
+      const stylesheet = stylesheets[i];
+      stylesheet.rel = 'stylesheet';
+    }
+  }
+  const manageTransitions = (selector, allowTransitions) => {
+    const els = window.document.querySelectorAll(selector);
+    for (let i=0; i < els.length; i++) {
+      const el = els[i];
+      if (allowTransitions) {
+        el.classList.remove('notransition');
+      } else {
+        el.classList.add('notransition');
+      }
+    }
+  }
+  const toggleColorMode = (alternate) => {
+    // Switch the stylesheets
+    const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+    manageTransitions('#quarto-margin-sidebar .nav-link', false);
+    if (alternate) {
+      enableStylesheet(alternateStylesheets);
+      for (const sheetNode of alternateStylesheets) {
+        if (sheetNode.id === "quarto-bootstrap") {
+          toggleBodyColorMode(sheetNode);
+        }
+      }
+    } else {
+      disableStylesheet(alternateStylesheets);
+      toggleBodyColorPrimary();
+    }
+    manageTransitions('#quarto-margin-sidebar .nav-link', true);
+    // Switch the toggles
+    const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+    for (let i=0; i < toggles.length; i++) {
+      const toggle = toggles[i];
+      if (toggle) {
+        if (alternate) {
+          toggle.classList.add("alternate");     
+        } else {
+          toggle.classList.remove("alternate");
+        }
+      }
+    }
+    // Hack to workaround the fact that safari doesn't
+    // properly recolor the scrollbar when toggling (#1455)
+    if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+      manageTransitions("body", false);
+      window.scrollTo(0, 1);
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+        manageTransitions("body", true);
+      }, 40);  
+    }
+  }
+  const isFileUrl = () => { 
+    return window.location.protocol === 'file:';
+  }
+  const hasAlternateSentinel = () => {  
+    let styleSentinel = getColorSchemeSentinel();
+    if (styleSentinel !== null) {
+      return styleSentinel === "alternate";
+    } else {
+      return false;
+    }
+  }
+  const setStyleSentinel = (alternate) => {
+    const value = alternate ? "alternate" : "default";
+    if (!isFileUrl()) {
+      window.localStorage.setItem("quarto-color-scheme", value);
+    } else {
+      localAlternateSentinel = value;
+    }
+  }
+  const getColorSchemeSentinel = () => {
+    if (!isFileUrl()) {
+      const storageValue = window.localStorage.getItem("quarto-color-scheme");
+      return storageValue != null ? storageValue : localAlternateSentinel;
+    } else {
+      return localAlternateSentinel;
+    }
+  }
+  let localAlternateSentinel = 'default';
+  // Dark / light mode switch
+  window.quartoToggleColorScheme = () => {
+    // Read the current dark / light value 
+    let toAlternate = !hasAlternateSentinel();
+    toggleColorMode(toAlternate);
+    setStyleSentinel(toAlternate);
+  };
+  // Ensure there is a toggle, if there isn't float one in the top right
+  if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+    const a = window.document.createElement('a');
+    a.classList.add('top-right');
+    a.classList.add('quarto-color-scheme-toggle');
+    a.href = "";
+    a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+    const i = window.document.createElement("i");
+    i.classList.add('bi');
+    a.appendChild(i);
+    window.document.body.appendChild(a);
+  }
+  // Switch to dark mode if need be
+  if (hasAlternateSentinel()) {
+    toggleColorMode(true);
+  } else {
+    toggleColorMode(false);
+  }
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  const viewSource = window.document.getElementById('quarto-view-source') ||
+                     window.document.getElementById('quarto-code-tools-source');
+  if (viewSource) {
+    const sourceUrl = viewSource.getAttribute("data-quarto-source-url");
+    viewSource.addEventListener("click", function(e) {
+      if (sourceUrl) {
+        // rstudio viewer pane
+        if (/\bcapabilities=\b/.test(window.location)) {
+          window.open(sourceUrl);
+        } else {
+          window.location.href = sourceUrl;
+        }
+      } else {
+        const modal = new bootstrap.Modal(document.getElementById('quarto-embedded-source-code-modal'));
+        modal.show();
+      }
+      return false;
+    });
+  }
+  function toggleCodeHandler(show) {
+    return function(e) {
+      const detailsSrc = window.document.querySelectorAll(".cell > details > .sourceCode");
+      for (let i=0; i<detailsSrc.length; i++) {
+        const details = detailsSrc[i].parentElement;
+        if (show) {
+          details.open = true;
+        } else {
+          details.removeAttribute("open");
+        }
+      }
+      const cellCodeDivs = window.document.querySelectorAll(".cell > .sourceCode");
+      const fromCls = show ? "hidden" : "unhidden";
+      const toCls = show ? "unhidden" : "hidden";
+      for (let i=0; i<cellCodeDivs.length; i++) {
+        const codeDiv = cellCodeDivs[i];
+        if (codeDiv.classList.contains(fromCls)) {
+          codeDiv.classList.remove(fromCls);
+          codeDiv.classList.add(toCls);
+        } 
+      }
+      return false;
+    }
+  }
+  const hideAllCode = window.document.getElementById("quarto-hide-all-code");
+  if (hideAllCode) {
+    hideAllCode.addEventListener("click", toggleCodeHandler(false));
+  }
+  const showAllCode = window.document.getElementById("quarto-show-all-code");
+  if (showAllCode) {
+    showAllCode.addEventListener("click", toggleCodeHandler(true));
+  }
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script><div class="modal fade" id="quarto-embedded-source-code-modal" tabindex="-1" aria-labelledby="quarto-embedded-source-code-modal-label" aria-hidden="true"><div class="modal-dialog modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><h5 class="modal-title" id="quarto-embedded-source-code-modal-label">Source Code</h5><button class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><div class="">
+<div class="sourceCode" id="cb16" data-shortcodes="false"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a><span class="an">title:</span><span class="co"> "Mediation analyst in R"</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="an">subtitle:</span><span class="co"> "Việt Nam, 2024"</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a><span class="an">categories:</span><span class="co"> ["Reverse Logistics", "Supply Chain Management"]</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a><span class="an">description:</span><span class="co"> "This is my tutorial of implementing the mediation analyst in R."</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a><span class="an">author:</span><span class="co"> "Cao Xuân Lộc"</span></span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a><span class="an">date:</span><span class="co"> "2024-08-27"</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a><span class="an">format:</span><span class="co"> </span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a><span class="co">  html:</span></span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a><span class="co">    code-fold: true</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a><span class="co">    code-tools: true</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a><span class="co">    theme: </span></span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a><span class="co">      light: flatly</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a><span class="co">      dark: darkly</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a><span class="co">    toc: true</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a><span class="an">number-sections:</span><span class="co"> true</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a><span class="an">bibliography:</span><span class="co"> references.bib</span></span>
+<span id="cb16-18"><a href="#cb16-18" aria-hidden="true" tabindex="-1"></a><span class="an">page-footer:</span></span>
+<span id="cb16-19"><a href="#cb16-19" aria-hidden="true" tabindex="-1"></a><span class="co">  right: "Built with [Quarto](https://quarto.org/)"</span></span>
+<span id="cb16-20"><a href="#cb16-20" aria-hidden="true" tabindex="-1"></a><span class="co">  left: "&amp;copy; Copyright 2023, Loc cao"</span></span>
+<span id="cb16-21"><a href="#cb16-21" aria-hidden="true" tabindex="-1"></a><span class="co">---</span></span>
+<span id="cb16-22"><a href="#cb16-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-23"><a href="#cb16-23" aria-hidden="true" tabindex="-1"></a><span class="fu"># Input:</span></span>
+<span id="cb16-24"><a href="#cb16-24" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-25"><a href="#cb16-25" aria-hidden="true" tabindex="-1"></a>I cannot share the data so you can see figures below illustrated how data looks like.</span>
+<span id="cb16-26"><a href="#cb16-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-29"><a href="#cb16-29" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-30"><a href="#cb16-30" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb16-31"><a href="#cb16-31" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb16-32"><a href="#cb16-32" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb16-33"><a href="#cb16-33" aria-hidden="true" tabindex="-1"></a><span class="co">#Call packages</span></span>
+<span id="cb16-34"><a href="#cb16-34" aria-hidden="true" tabindex="-1"></a>pacman<span class="sc">::</span><span class="fu">p_load</span>(rio,</span>
+<span id="cb16-35"><a href="#cb16-35" aria-hidden="true" tabindex="-1"></a>               here,</span>
+<span id="cb16-36"><a href="#cb16-36" aria-hidden="true" tabindex="-1"></a>               janitor,</span>
+<span id="cb16-37"><a href="#cb16-37" aria-hidden="true" tabindex="-1"></a>               tidyverse,</span>
+<span id="cb16-38"><a href="#cb16-38" aria-hidden="true" tabindex="-1"></a>               dplyr,</span>
+<span id="cb16-39"><a href="#cb16-39" aria-hidden="true" tabindex="-1"></a>               magrittr,</span>
+<span id="cb16-40"><a href="#cb16-40" aria-hidden="true" tabindex="-1"></a>               ggplot2,</span>
+<span id="cb16-41"><a href="#cb16-41" aria-hidden="true" tabindex="-1"></a>               purrr,</span>
+<span id="cb16-42"><a href="#cb16-42" aria-hidden="true" tabindex="-1"></a>               lubridate,</span>
+<span id="cb16-43"><a href="#cb16-43" aria-hidden="true" tabindex="-1"></a>               mice,</span>
+<span id="cb16-44"><a href="#cb16-44" aria-hidden="true" tabindex="-1"></a>               plotly</span>
+<span id="cb16-45"><a href="#cb16-45" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb16-46"><a href="#cb16-46" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-47"><a href="#cb16-47" aria-hidden="true" tabindex="-1"></a><span class="co">#Data:</span></span>
+<span id="cb16-48"><a href="#cb16-48" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span>
+<span id="cb16-49"><a href="#cb16-49" aria-hidden="true" tabindex="-1"></a>df<span class="ot">&lt;-</span> <span class="fu">read_excel</span>(<span class="st">"C:/Users/locca/Downloads/Data_Rác thải điện tử.xlsx"</span>, </span>
+<span id="cb16-50"><a href="#cb16-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">sheet =</span> <span class="st">"Đã mã hóa"</span>)</span>
+<span id="cb16-51"><a href="#cb16-51" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-52"><a href="#cb16-52" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-53"><a href="#cb16-53" aria-hidden="true" tabindex="-1"></a><span class="fu">## Prepare the dataset:</span></span>
+<span id="cb16-54"><a href="#cb16-54" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-55"><a href="#cb16-55" aria-hidden="true" tabindex="-1"></a>Likert data is a type of ordinal data used in surveys and questionnaires to measure attitudes, opinions, or perceptions. Named after psychologist Rensis Likert, who developed the scale, it typically involves respondents indicating their level of agreement or disagreement with a series of statements on a scale.</span>
+<span id="cb16-56"><a href="#cb16-56" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-57"><a href="#cb16-57" aria-hidden="true" tabindex="-1"></a>**Key Features:**</span>
+<span id="cb16-58"><a href="#cb16-58" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-59"><a href="#cb16-59" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>**Scale Structure:** Likert scales often use a 5-point or 7-point scale, ranging from strong disagreement to strong agreement. For example, a 5-point scale might include options like "Strongly Disagree," "Disagree," "Neutral," "Agree," and "Strongly Agree."</span>
+<span id="cb16-60"><a href="#cb16-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-61"><a href="#cb16-61" aria-hidden="true" tabindex="-1"></a><span class="ss">2.  </span>**Ordinal Nature:** The data collected are ordinal, meaning they represent ordered categories, but the intervals between them are not necessarily equal. For example, the difference between "Agree" and "Strongly Agree" isn't quantifiable in the same way as numerical data.</span>
+<span id="cb16-62"><a href="#cb16-62" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-63"><a href="#cb16-63" aria-hidden="true" tabindex="-1"></a><span class="ss">3.  </span>**Data Analysis:** Likert data is often analyzed using descriptive statistics like means and standard deviations, as well as inferential statistics to explore relationships or differences between groups. While some analyses treat the data as interval-level for convenience, it's crucial to remember its ordinal nature.</span>
+<span id="cb16-64"><a href="#cb16-64" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-65"><a href="#cb16-65" aria-hidden="true" tabindex="-1"></a><span class="ss">4.  </span>**Applications:** Likert data is commonly used in social science research, customer satisfaction surveys, and employee feedback forms to gauge attitudes and opinions.</span>
+<span id="cb16-66"><a href="#cb16-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-69"><a href="#cb16-69" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-70"><a href="#cb16-70" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb16-71"><a href="#cb16-71" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb16-72"><a href="#cb16-72" aria-hidden="true" tabindex="-1"></a>df_new <span class="ot">&lt;-</span>df <span class="sc">%&gt;%</span> </span>
+<span id="cb16-73"><a href="#cb16-73" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">SAFETY =</span> (SAFETY1<span class="sc">+</span>SAFETY2<span class="sc">+</span>SAFETY3<span class="sc">+</span>SAFETY4)<span class="sc">/</span><span class="dv">4</span>,</span>
+<span id="cb16-74"><a href="#cb16-74" aria-hidden="true" tabindex="-1"></a>         <span class="at">OFFER =</span> (OFFER1<span class="sc">+</span>OFFER2<span class="sc">+</span>OFFER3<span class="sc">+</span>OFFER4)<span class="sc">/</span><span class="dv">4</span>,</span>
+<span id="cb16-75"><a href="#cb16-75" aria-hidden="true" tabindex="-1"></a>         <span class="at">AWARENESS =</span> (AWARENESS1<span class="sc">+</span>AWARENESS2<span class="sc">+</span>AWARENESS3<span class="sc">+</span>AWARENESS4)<span class="sc">/</span><span class="dv">4</span>,</span>
+<span id="cb16-76"><a href="#cb16-76" aria-hidden="true" tabindex="-1"></a>         <span class="at">SUPPLYINPUT =</span>(SUPPLYINPUT1<span class="sc">+</span>SUPPLYINPUT2<span class="sc">+</span>SUPPLYINPUT3<span class="sc">+</span>SUPPLYINPUT4)<span class="sc">/</span><span class="dv">4</span>,</span>
+<span id="cb16-77"><a href="#cb16-77" aria-hidden="true" tabindex="-1"></a>         <span class="at">REVERSE_DECISION =</span> (REVERSE_DECISION1<span class="sc">+</span>REVERSE_DECISION2<span class="sc">+</span>REVERSE_DECISION3<span class="sc">+</span>REVERSE_DECISION4)<span class="sc">/</span><span class="dv">4</span>)</span>
+<span id="cb16-78"><a href="#cb16-78" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-79"><a href="#cb16-79" aria-hidden="true" tabindex="-1"></a>m<span class="ot">&lt;-</span>df <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="fu">contains</span>(<span class="fu">c</span>(<span class="st">"SAFETY"</span>,</span>
+<span id="cb16-80"><a href="#cb16-80" aria-hidden="true" tabindex="-1"></a>                            <span class="st">"OFFER"</span>,</span>
+<span id="cb16-81"><a href="#cb16-81" aria-hidden="true" tabindex="-1"></a>                            <span class="st">"SUPPLY"</span>,</span>
+<span id="cb16-82"><a href="#cb16-82" aria-hidden="true" tabindex="-1"></a>                            <span class="st">"AWARE"</span>,</span>
+<span id="cb16-83"><a href="#cb16-83" aria-hidden="true" tabindex="-1"></a>                            <span class="st">"REVERSE"</span>)))</span>
+<span id="cb16-84"><a href="#cb16-84" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-85"><a href="#cb16-85" aria-hidden="true" tabindex="-1"></a>df_new<span class="ot">&lt;-</span>df_new <span class="sc">%&gt;%</span> </span>
+<span id="cb16-86"><a href="#cb16-86" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span><span class="fu">names</span>(m))</span>
+<span id="cb16-87"><a href="#cb16-87" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-88"><a href="#cb16-88" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb16-89"><a href="#cb16-89" aria-hidden="true" tabindex="-1"></a><span class="do">##Convert categorical cols in df_new to factor class:</span></span>
+<span id="cb16-90"><a href="#cb16-90" aria-hidden="true" tabindex="-1"></a>cols <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="fu">names</span>(df <span class="sc">%&gt;%</span>  <span class="fu">select</span> (<span class="sc">-</span><span class="fu">c</span>(<span class="fu">names</span>(m)))))</span>
+<span id="cb16-91"><a href="#cb16-91" aria-hidden="true" tabindex="-1"></a>df_new[cols]<span class="ot">&lt;-</span><span class="fu">lapply</span>(df_new[cols],factor)</span>
+<span id="cb16-92"><a href="#cb16-92" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-93"><a href="#cb16-93" aria-hidden="true" tabindex="-1"></a><span class="do">##Check again:</span></span>
+<span id="cb16-94"><a href="#cb16-94" aria-hidden="true" tabindex="-1"></a><span class="fu">glimpse</span>(df_new)</span>
+<span id="cb16-95"><a href="#cb16-95" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-96"><a href="#cb16-96" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-97"><a href="#cb16-97" aria-hidden="true" tabindex="-1"></a><span class="fu">### Likert chart:</span></span>
+<span id="cb16-98"><a href="#cb16-98" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-99"><a href="#cb16-99" aria-hidden="true" tabindex="-1"></a>Overall, Likert scales are a popular and useful tool for capturing subjective information, though the ordinal nature of the data requires careful consideration in analysis and interpretation.</span>
+<span id="cb16-100"><a href="#cb16-100" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-101"><a href="#cb16-101" aria-hidden="true" tabindex="-1"></a><span class="al">![](Rplot.png)</span>{fig-align="center" width="616"}</span>
+<span id="cb16-102"><a href="#cb16-102" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-103"><a href="#cb16-103" aria-hidden="true" tabindex="-1"></a><span class="fu">### The distribution plot of likert scales:</span></span>
+<span id="cb16-104"><a href="#cb16-104" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-105"><a href="#cb16-105" aria-hidden="true" tabindex="-1"></a>In other hand, we can use a distribution plot of Likert data visualizes how responses are distributed across the different scale points. Given the ordinal nature of Likert data, such a plot helps to understand the frequency or proportion of responses for each category on the scale.</span>
+<span id="cb16-106"><a href="#cb16-106" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-107"><a href="#cb16-107" aria-hidden="true" tabindex="-1"></a>Steps to Create a Distribution Plot for Likert Data:</span>
+<span id="cb16-108"><a href="#cb16-108" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-109"><a href="#cb16-109" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>**Collect Data**: Gather your Likert scale responses from the survey or questionnaire.</span>
+<span id="cb16-110"><a href="#cb16-110" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-111"><a href="#cb16-111" aria-hidden="true" tabindex="-1"></a><span class="ss">2.  </span>**Tabulate Responses**: Count the number of responses for each Likert scale point (e.g., "Strongly Disagree" to "Strongly Agree").</span>
+<span id="cb16-112"><a href="#cb16-112" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-113"><a href="#cb16-113" aria-hidden="true" tabindex="-1"></a><span class="ss">3.  </span>**Choose a Visualization Tool**: You can use various tools like Excel, Google Sheets, or statistical software (e.g., R, Python's Matplotlib/Seaborn) to create the plot.</span>
+<span id="cb16-114"><a href="#cb16-114" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-115"><a href="#cb16-115" aria-hidden="true" tabindex="-1"></a><span class="ss">4.  </span>**Plot the Data**: you can consider between *Bar Chart* - where each bar represents the frequency or percentage of responses for each scale point or *Pie Chart* which shows the proportion of responses for each scale point. If you are dealing with multiple groups or categories, *Stacked Bar Chart* maybe useful where bars are segmented to show the distribution across the Likert scale for each group.</span>
+<span id="cb16-116"><a href="#cb16-116" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-119"><a href="#cb16-119" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-120"><a href="#cb16-120" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb16-121"><a href="#cb16-121" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb16-122"><a href="#cb16-122" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb16-123"><a href="#cb16-123" aria-hidden="true" tabindex="-1"></a>m_new <span class="ot">&lt;-</span>m <span class="sc">%&gt;%</span> <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="fu">everything</span>(),</span>
+<span id="cb16-124"><a href="#cb16-124" aria-hidden="true" tabindex="-1"></a>                           <span class="at">names_to =</span> <span class="st">"variable"</span>,</span>
+<span id="cb16-125"><a href="#cb16-125" aria-hidden="true" tabindex="-1"></a>                           <span class="at">values_to =</span> <span class="st">"value"</span>)</span>
+<span id="cb16-126"><a href="#cb16-126" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-127"><a href="#cb16-127" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>()<span class="sc">+</span></span>
+<span id="cb16-128"><a href="#cb16-128" aria-hidden="true" tabindex="-1"></a>  ggridges<span class="sc">::</span><span class="fu">geom_density_ridges</span>(<span class="at">data  =</span> m_new, </span>
+<span id="cb16-129"><a href="#cb16-129" aria-hidden="true" tabindex="-1"></a>                                <span class="fu">aes</span>(<span class="at">x  =</span> value,</span>
+<span id="cb16-130"><a href="#cb16-130" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">y  =</span> <span class="fu">as.factor</span>(variable),</span>
+<span id="cb16-131"><a href="#cb16-131" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">fill =</span> <span class="fu">as.factor</span>(variable),</span>
+<span id="cb16-132"><a href="#cb16-132" aria-hidden="true" tabindex="-1"></a>                                    <span class="at">height =</span> ..density..), </span>
+<span id="cb16-133"><a href="#cb16-133" aria-hidden="true" tabindex="-1"></a>                                <span class="at">scale =</span> <span class="dv">3</span>, </span>
+<span id="cb16-134"><a href="#cb16-134" aria-hidden="true" tabindex="-1"></a>                                <span class="at">alpha =</span> .<span class="dv">6</span>) <span class="sc">+</span></span>
+<span id="cb16-135"><a href="#cb16-135" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>,<span class="dv">6</span>))<span class="sc">+</span></span>
+<span id="cb16-136"><a href="#cb16-136" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="dv">3</span>, <span class="at">col =</span> <span class="st">"red"</span>,<span class="at">size =</span> <span class="dv">2</span>)<span class="sc">+</span></span>
+<span id="cb16-137"><a href="#cb16-137" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">data =</span> <span class="fu">data.frame</span>(<span class="fu">list</span>(<span class="at">variable =</span> <span class="fu">unique</span>(m_new<span class="sc">$</span>variable), <span class="at">value =</span> <span class="fu">colMeans</span>(m))),</span>
+<span id="cb16-138"><a href="#cb16-138" aria-hidden="true" tabindex="-1"></a>             <span class="fu">aes</span>(<span class="at">x =</span> value, </span>
+<span id="cb16-139"><a href="#cb16-139" aria-hidden="true" tabindex="-1"></a>                 <span class="at">y =</span> <span class="fu">as.factor</span>(variable)),</span>
+<span id="cb16-140"><a href="#cb16-140" aria-hidden="true" tabindex="-1"></a>             <span class="at">size =</span> <span class="dv">3</span>, </span>
+<span id="cb16-141"><a href="#cb16-141" aria-hidden="true" tabindex="-1"></a>             <span class="at">col  =</span> <span class="st">"blue"</span>)<span class="sc">+</span></span>
+<span id="cb16-142"><a href="#cb16-142" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">legend.position=</span><span class="st">"none"</span>)<span class="sc">+</span></span>
+<span id="cb16-143"><a href="#cb16-143" aria-hidden="true" tabindex="-1"></a>  viridis<span class="sc">::</span><span class="fu">scale_fill_viridis</span>(<span class="at">discrete =</span> <span class="cn">TRUE</span>)<span class="sc">+</span></span>
+<span id="cb16-144"><a href="#cb16-144" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x        =</span> <span class="st">"Gía trị Likert"</span>,</span>
+<span id="cb16-145"><a href="#cb16-145" aria-hidden="true" tabindex="-1"></a>       <span class="at">y        =</span> <span class="st">"Biến trong thang đo"</span>)</span>
+<span id="cb16-146"><a href="#cb16-146" aria-hidden="true" tabindex="-1"></a>       </span>
+<span id="cb16-147"><a href="#cb16-147" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-148"><a href="#cb16-148" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-149"><a href="#cb16-149" aria-hidden="true" tabindex="-1"></a><span class="fu">### The Correlation coefficients analyst:</span></span>
+<span id="cb16-150"><a href="#cb16-150" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-151"><a href="#cb16-151" aria-hidden="true" tabindex="-1"></a>A correlation test is used to determine the strength and direction of the relationship between two continuous variables. It assesses whether changes in one variable are associated with changes in another variable.</span>
+<span id="cb16-152"><a href="#cb16-152" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-155"><a href="#cb16-155" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-156"><a href="#cb16-156" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb16-157"><a href="#cb16-157" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb16-158"><a href="#cb16-158" aria-hidden="true" tabindex="-1"></a><span class="co">#| echo: false</span></span>
+<span id="cb16-159"><a href="#cb16-159" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(corrplot)</span>
+<span id="cb16-160"><a href="#cb16-160" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(grDevices)</span>
+<span id="cb16-161"><a href="#cb16-161" aria-hidden="true" tabindex="-1"></a>col <span class="ot">&lt;-</span> <span class="fu">colorRampPalette</span>(<span class="fu">c</span>(<span class="st">"#BB4444"</span>, <span class="st">"#EE9988"</span>, <span class="st">"#FFFFFF"</span>, <span class="st">"#77AADD"</span>, <span class="st">"#4477AA"</span>))</span>
+<span id="cb16-162"><a href="#cb16-162" aria-hidden="true" tabindex="-1"></a><span class="fu">corrplot.mixed</span>(<span class="fu">cor</span>(df_new <span class="sc">%&gt;%</span></span>
+<span id="cb16-163"><a href="#cb16-163" aria-hidden="true" tabindex="-1"></a>         <span class="fu">select</span>(<span class="fu">c</span>(<span class="st">"SAFETY"</span>,</span>
+<span id="cb16-164"><a href="#cb16-164" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"SUPPLYINPUT"</span>,</span>
+<span id="cb16-165"><a href="#cb16-165" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"OFFER"</span>,</span>
+<span id="cb16-166"><a href="#cb16-166" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"AWARENESS"</span>,</span>
+<span id="cb16-167"><a href="#cb16-167" aria-hidden="true" tabindex="-1"></a>                  <span class="st">"REVERSE_DECISION"</span>))),</span>
+<span id="cb16-168"><a href="#cb16-168" aria-hidden="true" tabindex="-1"></a>               <span class="at">tl.cex =</span> <span class="fl">0.6</span>,</span>
+<span id="cb16-169"><a href="#cb16-169" aria-hidden="true" tabindex="-1"></a>               <span class="at">number.cex =</span> <span class="fl">1.5</span>,</span>
+<span id="cb16-170"><a href="#cb16-170" aria-hidden="true" tabindex="-1"></a>               <span class="at">lower =</span> <span class="st">"number"</span>, </span>
+<span id="cb16-171"><a href="#cb16-171" aria-hidden="true" tabindex="-1"></a>               <span class="at">upper =</span> <span class="st">"circle"</span>,</span>
+<span id="cb16-172"><a href="#cb16-172" aria-hidden="true" tabindex="-1"></a>               <span class="at">tl.col =</span> <span class="st">"black"</span>)</span>
+<span id="cb16-173"><a href="#cb16-173" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-174"><a href="#cb16-174" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-175"><a href="#cb16-175" aria-hidden="true" tabindex="-1"></a><span class="fu"># Output:</span></span>
+<span id="cb16-176"><a href="#cb16-176" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-177"><a href="#cb16-177" aria-hidden="true" tabindex="-1"></a><span class="fu">## Mediation analyst approach:</span></span>
+<span id="cb16-178"><a href="#cb16-178" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-179"><a href="#cb16-179" aria-hidden="true" tabindex="-1"></a>A mediation model examines whether the effect of an independent variable (X) on a dependent variable (Y) is transmitted through a third variable, called a mediator (M). For the mediation analysis to be valid and reliable, certain assumptions must be met. Here are the key assumptions:</span>
+<span id="cb16-180"><a href="#cb16-180" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-181"><a href="#cb16-181" aria-hidden="true" tabindex="-1"></a>**Steps in Mediation Analysis:**</span>
+<span id="cb16-182"><a href="#cb16-182" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-183"><a href="#cb16-183" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>**Test the Total Effect:**</span>
+<span id="cb16-184"><a href="#cb16-184" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>Examine the direct relationship between the independent variable (X) and the dependent variable (Y).</span>
+<span id="cb16-185"><a href="#cb16-185" aria-hidden="true" tabindex="-1"></a><span class="ss">2.  </span>**Test the Path from X to M:**</span>
+<span id="cb16-186"><a href="#cb16-186" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>Analyze the relationship between the independent variable (X) and the mediator (M).</span>
+<span id="cb16-187"><a href="#cb16-187" aria-hidden="true" tabindex="-1"></a><span class="ss">3.  </span>**Test the Path from M to Y:**</span>
+<span id="cb16-188"><a href="#cb16-188" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>Assess the relationship between the mediator (M) and the dependent variable (Y), controlling for the independent variable (X).</span>
+<span id="cb16-189"><a href="#cb16-189" aria-hidden="true" tabindex="-1"></a><span class="ss">4.  </span>**Test the Direct Effect:**</span>
+<span id="cb16-190"><a href="#cb16-190" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>Examine the direct effect of the independent variable (X) on the dependent variable (Y) while controlling for the mediator (M).</span>
+<span id="cb16-191"><a href="#cb16-191" aria-hidden="true" tabindex="-1"></a><span class="ss">5.  </span>**Compare Effects:**</span>
+<span id="cb16-192"><a href="#cb16-192" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>Determine if the mediation effect (indirect effect) is significant and if it explains the relationship between X and Y beyond the direct effect.</span>
+<span id="cb16-193"><a href="#cb16-193" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-194"><a href="#cb16-194" aria-hidden="true" tabindex="-1"></a>**Statistical Methods:**</span>
+<span id="cb16-195"><a href="#cb16-195" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-196"><a href="#cb16-196" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Baron and Kenny’s Approach:** Traditional method involving sequential regression analyses to test the above paths.</span>
+<span id="cb16-197"><a href="#cb16-197" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Bootstrapping:** A resampling technique used to estimate the confidence intervals of the indirect effect, often considered more robust than Baron and Kenny’s approach.</span>
+<span id="cb16-198"><a href="#cb16-198" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Structural Equation Modeling (SEM):** A comprehensive method that can simultaneously estimate multiple mediation paths and their relationships.</span>
+<span id="cb16-199"><a href="#cb16-199" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-200"><a href="#cb16-200" aria-hidden="true" tabindex="-1"></a>By meeting these assumptions and carefully testing the mediation model, researchers can better understand the mechanisms through which an independent variable influences a dependent variable, providing deeper insights into the underlying processes.</span>
+<span id="cb16-201"><a href="#cb16-201" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-202"><a href="#cb16-202" aria-hidden="true" tabindex="-1"></a><span class="fu">### Check assumptions before modeling:</span></span>
+<span id="cb16-203"><a href="#cb16-203" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-204"><a href="#cb16-204" aria-hidden="true" tabindex="-1"></a>**Assumptions of a Mediation Model:**</span>
+<span id="cb16-205"><a href="#cb16-205" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-206"><a href="#cb16-206" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>**Linearity:**</span>
+<span id="cb16-207"><a href="#cb16-207" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>The relationships among the independent variable (X), mediator (M), and dependent variable (Y) should be linear. This means that the effects are additive and can be represented by straight lines in a scatterplot.</span>
+<span id="cb16-208"><a href="#cb16-208" aria-hidden="true" tabindex="-1"></a><span class="ss">2.  </span>**Independence of Errors:**</span>
+<span id="cb16-209"><a href="#cb16-209" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>The residuals or errors in the regression equations should be independent of each other. This assumption ensures that the model is not influenced by correlated errors between observations.</span>
+<span id="cb16-210"><a href="#cb16-210" aria-hidden="true" tabindex="-1"></a><span class="ss">3.  </span>**Homoscedasticity:**</span>
+<span id="cb16-211"><a href="#cb16-211" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>The variance of the residuals should be constant across all levels of the independent and mediator variables. In other words, the spread of errors should be similar across all values of X and M.</span>
+<span id="cb16-212"><a href="#cb16-212" aria-hidden="true" tabindex="-1"></a><span class="ss">4.  </span>**Normality of Errors:**</span>
+<span id="cb16-213"><a href="#cb16-213" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>The residuals or errors in the regression models should be normally distributed. This assumption helps in making valid inferences about the model parameters and their statistical significance.</span>
+<span id="cb16-214"><a href="#cb16-214" aria-hidden="true" tabindex="-1"></a><span class="ss">5.  </span>**No Multicollinearity:**</span>
+<span id="cb16-215"><a href="#cb16-215" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>There should be no high correlation among the independent variables, including the mediator variable, as high multicollinearity can make it difficult to isolate the individual effects of each variable.</span>
+<span id="cb16-216"><a href="#cb16-216" aria-hidden="true" tabindex="-1"></a><span class="ss">6.  </span>**Measurement Validity:**</span>
+<span id="cb16-217"><a href="#cb16-217" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>The variables should be measured accurately. This means the mediator (M) should genuinely capture the concept it is supposed to represent, and there should be reliable and valid measures for X, M, and Y.</span>
+<span id="cb16-218"><a href="#cb16-218" aria-hidden="true" tabindex="-1"></a><span class="ss">7.  </span>**Temporal Ordering:**</span>
+<span id="cb16-219"><a href="#cb16-219" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>For causal inferences, it is crucial that the independent variable (X) precedes the mediator (M), which in turn precedes the dependent variable (Y). This temporal ordering ensures that changes in X can affect M, which then influences Y.</span>
+<span id="cb16-220"><a href="#cb16-220" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-221"><a href="#cb16-221" aria-hidden="true" tabindex="-1"></a><span class="fu">## Implementing in R:</span></span>
+<span id="cb16-222"><a href="#cb16-222" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-225"><a href="#cb16-225" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-226"><a href="#cb16-226" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb16-227"><a href="#cb16-227" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb16-228"><a href="#cb16-228" aria-hidden="true" tabindex="-1"></a><span class="co">#| layout: [[50,50]]</span></span>
+<span id="cb16-229"><a href="#cb16-229" aria-hidden="true" tabindex="-1"></a><span class="do">## Using the {mvnormalTest} package for univariate (Shapiro-Wilk’s W) and multivariate normality (Mardia’s Multivariate Skewness and Kurtosis tests).</span></span>
+<span id="cb16-230"><a href="#cb16-230" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mvnormalTest)</span>
+<span id="cb16-231"><a href="#cb16-231" aria-hidden="true" tabindex="-1"></a>check<span class="ot">&lt;-</span><span class="fu">mardia</span>(df_new <span class="sc">%&gt;%</span> <span class="fu">select</span>(<span class="fu">c</span>(<span class="st">"SAFETY"</span>,</span>
+<span id="cb16-232"><a href="#cb16-232" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">"OFFER"</span>,</span>
+<span id="cb16-233"><a href="#cb16-233" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">"AWARENESS"</span>,</span>
+<span id="cb16-234"><a href="#cb16-234" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">"SUPPLYINPUT"</span>,</span>
+<span id="cb16-235"><a href="#cb16-235" aria-hidden="true" tabindex="-1"></a>                                  <span class="st">"REVERSE_DECISION"</span>)))</span>
+<span id="cb16-236"><a href="#cb16-236" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-237"><a href="#cb16-237" aria-hidden="true" tabindex="-1"></a><span class="do">## Check the Univariate normality test</span></span>
+<span id="cb16-238"><a href="#cb16-238" aria-hidden="true" tabindex="-1"></a>check<span class="sc">$</span>uv.shapiro</span>
+<span id="cb16-239"><a href="#cb16-239" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-240"><a href="#cb16-240" aria-hidden="true" tabindex="-1"></a><span class="do">## Check the Multivariate normaility test</span></span>
+<span id="cb16-241"><a href="#cb16-241" aria-hidden="true" tabindex="-1"></a>check<span class="sc">$</span>mv.test</span>
+<span id="cb16-242"><a href="#cb16-242" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-243"><a href="#cb16-243" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-244"><a href="#cb16-244" aria-hidden="true" tabindex="-1"></a><span class="fu">### Modeling with {lavaan} package:</span></span>
+<span id="cb16-245"><a href="#cb16-245" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-246"><a href="#cb16-246" aria-hidden="true" tabindex="-1"></a>The <span class="in">`lavaan`</span> package in R is a powerful tool for structural equation modeling (SEM). It allows users to specify, estimate, and evaluate complex statistical models that include latent variables, measurement models, and path models. Here’s an overview of the <span class="in">`lavaan`</span> package and its key functionalities:</span>
+<span id="cb16-247"><a href="#cb16-247" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-248"><a href="#cb16-248" aria-hidden="true" tabindex="-1"></a>About model **Structural Equation Modeling (SEM)** in <span class="in">`lavaan`</span>, it will estimate:</span>
+<span id="cb16-249"><a href="#cb16-249" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-250"><a href="#cb16-250" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Confirmatory Factor Analysis (CFA):** Tests how well a set of observed variables represents underlying latent constructs.</span>
+<span id="cb16-251"><a href="#cb16-251" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Path Analysis:** Examines direct and indirect relationships among variables.</span>
+<span id="cb16-252"><a href="#cb16-252" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Latent Variable Models:** Models that include unobserved (latent) variables alongside observed variables.</span>
+<span id="cb16-253"><a href="#cb16-253" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Mixture Models:** Handles latent variable models with multiple subpopulations.</span>
+<span id="cb16-254"><a href="#cb16-254" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-255"><a href="#cb16-255" aria-hidden="true" tabindex="-1"></a>Beside, the estimated algorithm, <span class="in">`lavaan`</span> use 3 methods including Maximum Likelihood (ML), Generalized Least Squares (GLS), and Robust Maximum Likelihood (MLR).</span>
+<span id="cb16-256"><a href="#cb16-256" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-257"><a href="#cb16-257" aria-hidden="true" tabindex="-1"></a>::: callout-tip</span>
+<span id="cb16-258"><a href="#cb16-258" aria-hidden="true" tabindex="-1"></a><span class="fu">## Tips for you !!!</span></span>
+<span id="cb16-259"><a href="#cb16-259" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-260"><a href="#cb16-260" aria-hidden="true" tabindex="-1"></a>You can mention it by argument <span class="in">`estimator`</span> in function <span class="in">`lavaan::sem`</span>.</span>
+<span id="cb16-261"><a href="#cb16-261" aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb16-262"><a href="#cb16-262" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-265"><a href="#cb16-265" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-266"><a href="#cb16-266" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb16-267"><a href="#cb16-267" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb16-268"><a href="#cb16-268" aria-hidden="true" tabindex="-1"></a><span class="do">##Define the model:</span></span>
+<span id="cb16-269"><a href="#cb16-269" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(lavaan)</span>
+<span id="cb16-270"><a href="#cb16-270" aria-hidden="true" tabindex="-1"></a>mediation_model <span class="ot">&lt;-</span> <span class="st">'</span></span>
+<span id="cb16-271"><a href="#cb16-271" aria-hidden="true" tabindex="-1"></a><span class="st">  # Direct effects</span></span>
+<span id="cb16-272"><a href="#cb16-272" aria-hidden="true" tabindex="-1"></a><span class="st">  AWARENESS ~ a*SAFETY  +  b*OFFER + c*SUPPLYINPUT</span></span>
+<span id="cb16-273"><a href="#cb16-273" aria-hidden="true" tabindex="-1"></a><span class="st">  REVERSE_DECISION ~ d*AWARENESS + e*SAFETY + f*OFFER</span></span>
+<span id="cb16-274"><a href="#cb16-274" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-275"><a href="#cb16-275" aria-hidden="true" tabindex="-1"></a><span class="st">  # Indirect effect:</span></span>
+<span id="cb16-276"><a href="#cb16-276" aria-hidden="true" tabindex="-1"></a><span class="st">  indirect := d*(a + b + c)</span></span>
+<span id="cb16-277"><a href="#cb16-277" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-278"><a href="#cb16-278" aria-hidden="true" tabindex="-1"></a><span class="st">  # Total effect:</span></span>
+<span id="cb16-279"><a href="#cb16-279" aria-hidden="true" tabindex="-1"></a><span class="st">  total := e + f + indirect'</span></span>
+<span id="cb16-280"><a href="#cb16-280" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-281"><a href="#cb16-281" aria-hidden="true" tabindex="-1"></a><span class="do">##Estimate the mediation model</span></span>
+<span id="cb16-282"><a href="#cb16-282" aria-hidden="true" tabindex="-1"></a>reg3 <span class="ot">&lt;-</span> <span class="fu">sem</span>(mediation_model,<span class="at">estimator =</span> <span class="st">"ML"</span>,<span class="at">data =</span> df_new)</span>
+<span id="cb16-283"><a href="#cb16-283" aria-hidden="true" tabindex="-1"></a><span class="do">##Summarize the results</span></span>
+<span id="cb16-284"><a href="#cb16-284" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(reg3, </span>
+<span id="cb16-285"><a href="#cb16-285" aria-hidden="true" tabindex="-1"></a>        <span class="at">standardized =</span> <span class="cn">TRUE</span>, </span>
+<span id="cb16-286"><a href="#cb16-286" aria-hidden="true" tabindex="-1"></a>        <span class="at">fit.measures =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb16-287"><a href="#cb16-287" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-288"><a href="#cb16-288" aria-hidden="true" tabindex="-1"></a><span class="do">##Plot the result:</span></span>
+<span id="cb16-289"><a href="#cb16-289" aria-hidden="true" tabindex="-1"></a>label1<span class="ot">&lt;-</span><span class="fu">list</span>(<span class="at">SAFETY =</span> <span class="st">"Sự an toàn"</span>,</span>
+<span id="cb16-290"><a href="#cb16-290" aria-hidden="true" tabindex="-1"></a>             <span class="at">OFFER =</span> <span class="st">"Sự ưu đãi"</span>,</span>
+<span id="cb16-291"><a href="#cb16-291" aria-hidden="true" tabindex="-1"></a>             <span class="at">SUPPLYINPUT =</span> <span class="st">"Cung cấp nguyên liệu đầu vào"</span>,</span>
+<span id="cb16-292"><a href="#cb16-292" aria-hidden="true" tabindex="-1"></a>             <span class="at">AWARENESS =</span> <span class="st">"Nhận thức xã hội"</span>,</span>
+<span id="cb16-293"><a href="#cb16-293" aria-hidden="true" tabindex="-1"></a>             <span class="at">REVERSE_DECISION =</span> <span class="st">"Quyết định tham gia Logistics ngược"</span>)</span>
+<span id="cb16-294"><a href="#cb16-294" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-295"><a href="#cb16-295" aria-hidden="true" tabindex="-1"></a>lavaanPlot<span class="sc">::</span><span class="fu">lavaanPlot</span>(<span class="at">model =</span> reg3,</span>
+<span id="cb16-296"><a href="#cb16-296" aria-hidden="true" tabindex="-1"></a>                       <span class="at">labels =</span> label1, </span>
+<span id="cb16-297"><a href="#cb16-297" aria-hidden="true" tabindex="-1"></a>                       <span class="at">node_options =</span> <span class="fu">list</span>(<span class="at">shape =</span> <span class="st">"box"</span>, <span class="at">fontname =</span> <span class="st">"Helvetica"</span>),</span>
+<span id="cb16-298"><a href="#cb16-298" aria-hidden="true" tabindex="-1"></a>                       <span class="at">edge_options =</span> <span class="fu">list</span>(<span class="at">color =</span> <span class="st">"grey"</span>),</span>
+<span id="cb16-299"><a href="#cb16-299" aria-hidden="true" tabindex="-1"></a>                       <span class="at">coefs =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb16-300"><a href="#cb16-300" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-301"><a href="#cb16-301" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-302"><a href="#cb16-302" aria-hidden="true" tabindex="-1"></a><span class="fu">### Modeling with {mediation} package:</span></span>
+<span id="cb16-303"><a href="#cb16-303" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-304"><a href="#cb16-304" aria-hidden="true" tabindex="-1"></a>The <span class="in">`mediation`</span> package in R is designed to facilitate the analysis of mediation models. Mediation models are used to understand the process through which an independent variable (IV) influences a dependent variable (DV) via one or more mediator variables. Here’s a brief summary of what the package offers:</span>
+<span id="cb16-305"><a href="#cb16-305" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-306"><a href="#cb16-306" aria-hidden="true" tabindex="-1"></a><span class="ss">1.  </span>**Core Functionality**: The primary function of the mediation package is <span class="in">`mediate()`</span>, which estimates the causal mediation effects and provides statistical tests to evaluate the significance of these effects.</span>
+<span id="cb16-307"><a href="#cb16-307" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-308"><a href="#cb16-308" aria-hidden="true" tabindex="-1"></a><span class="ss">2.  </span>**Components**:</span>
+<span id="cb16-309"><a href="#cb16-309" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-310"><a href="#cb16-310" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>**Model Specification**: You need to fit two models—one for the mediator and one for the outcome variable. The mediation package uses these models to estimate the direct and indirect effects.</span>
+<span id="cb16-311"><a href="#cb16-311" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>**Bootstrapping**: The package supports bootstrapping methods to compute confidence intervals for the indirect effects, enhancing robustness and reliability.</span>
+<span id="cb16-312"><a href="#cb16-312" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-313"><a href="#cb16-313" aria-hidden="true" tabindex="-1"></a><span class="ss">3.  </span>**Key Features**:</span>
+<span id="cb16-314"><a href="#cb16-314" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-315"><a href="#cb16-315" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>**Estimation of Effects**: Provides estimates for direct, indirect, and total effects, allowing for a comprehensive understanding of mediation.</span>
+<span id="cb16-316"><a href="#cb16-316" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>**Sensitivity Analysis**: Offers tools to assess the sensitivity of the mediation effect to potential violations of assumptions.</span>
+<span id="cb16-317"><a href="#cb16-317" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>**Multiple Mediators**: Supports models with multiple mediators, including interactions among them.</span>
+<span id="cb16-318"><a href="#cb16-318" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-319"><a href="#cb16-319" aria-hidden="true" tabindex="-1"></a><span class="ss">4.  </span>**Output**:</span>
+<span id="cb16-320"><a href="#cb16-320" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-321"><a href="#cb16-321" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>**Summary Tables**: Produces tables summarizing the estimated effects and their significance.</span>
+<span id="cb16-322"><a href="#cb16-322" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>**Visualization**: Tools to visualize mediation effects, helping to interpret and present findings.</span>
+<span id="cb16-323"><a href="#cb16-323" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-324"><a href="#cb16-324" aria-hidden="true" tabindex="-1"></a><span class="ss">5.  </span>**Usage**:</span>
+<span id="cb16-325"><a href="#cb16-325" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-326"><a href="#cb16-326" aria-hidden="true" tabindex="-1"></a><span class="ss">    -   </span>You typically fit a regression model for the mediator and another for the outcome, then use <span class="in">`mediate()`</span> to analyze the mediation process.</span>
+<span id="cb16-327"><a href="#cb16-327" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-330"><a href="#cb16-330" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-331"><a href="#cb16-331" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb16-332"><a href="#cb16-332" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb16-333"><a href="#cb16-333" aria-hidden="true" tabindex="-1"></a><span class="do">##Or we can use Preacher &amp; Hayes (2004) approach:</span></span>
+<span id="cb16-334"><a href="#cb16-334" aria-hidden="true" tabindex="-1"></a><span class="do">###Using meidation package:</span></span>
+<span id="cb16-335"><a href="#cb16-335" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(mediation)</span>
+<span id="cb16-336"><a href="#cb16-336" aria-hidden="true" tabindex="-1"></a>fitM <span class="ot">&lt;-</span> <span class="fu">lm</span>(AWARENESS <span class="sc">~</span> SUPPLYINPUT <span class="sc">+</span> SAFETY <span class="sc">+</span> OFFER, </span>
+<span id="cb16-337"><a href="#cb16-337" aria-hidden="true" tabindex="-1"></a>           <span class="at">data=</span>df_new) </span>
+<span id="cb16-338"><a href="#cb16-338" aria-hidden="true" tabindex="-1"></a>fitY <span class="ot">&lt;-</span> <span class="fu">lm</span>(REVERSE_DECISION <span class="sc">~</span> AWARENESS <span class="sc">+</span> SAFETY <span class="sc">+</span> OFFER, </span>
+<span id="cb16-339"><a href="#cb16-339" aria-hidden="true" tabindex="-1"></a>           <span class="at">data=</span>df_new)</span>
+<span id="cb16-340"><a href="#cb16-340" aria-hidden="true" tabindex="-1"></a>fitMed <span class="ot">&lt;-</span> <span class="fu">mediate</span>(fitM, </span>
+<span id="cb16-341"><a href="#cb16-341" aria-hidden="true" tabindex="-1"></a>                  fitY,</span>
+<span id="cb16-342"><a href="#cb16-342" aria-hidden="true" tabindex="-1"></a>                  <span class="at">sims =</span> <span class="dv">1000</span>,</span>
+<span id="cb16-343"><a href="#cb16-343" aria-hidden="true" tabindex="-1"></a>                  <span class="at">boot =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb16-344"><a href="#cb16-344" aria-hidden="true" tabindex="-1"></a>                  <span class="at">treat =</span> <span class="st">"SAFETY"</span>,</span>
+<span id="cb16-345"><a href="#cb16-345" aria-hidden="true" tabindex="-1"></a>                  <span class="at">mediator=</span><span class="st">"AWARENESS"</span>)</span>
+<span id="cb16-346"><a href="#cb16-346" aria-hidden="true" tabindex="-1"></a><span class="fu">summary</span>(fitMed)</span>
+<span id="cb16-347"><a href="#cb16-347" aria-hidden="true" tabindex="-1"></a><span class="fu">plot</span>(fitMed)</span>
+<span id="cb16-348"><a href="#cb16-348" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+<span id="cb16-349"><a href="#cb16-349" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-350"><a href="#cb16-350" aria-hidden="true" tabindex="-1"></a>The mediate function gives us:</span>
+<span id="cb16-351"><a href="#cb16-351" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-352"><a href="#cb16-352" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Average Direct Effects (ADE) means direct effect of SAFETY and OFFER on REVERSE_DECISION without AWARENESS.</span>
+<span id="cb16-353"><a href="#cb16-353" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-354"><a href="#cb16-354" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Combined indirect and direct effects (Total Effect) means total effect of SAFETY and OFFER on REVERSE_DECISION plus the indirect effect of AWARENESS.</span>
+<span id="cb16-355"><a href="#cb16-355" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-356"><a href="#cb16-356" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>Average Causal Mediation Effects (ACME) = Total Effect - ADE</span>
+<span id="cb16-357"><a href="#cb16-357" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-358"><a href="#cb16-358" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>The ratio of these estimates (Prop. Mediated).</span>
+<span id="cb16-359"><a href="#cb16-359" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-360"><a href="#cb16-360" aria-hidden="true" tabindex="-1"></a>The ACME here is the indirect effect of M (total effect - direct effect) and thus this value tells us if our mediation effect is significant <span class="co">[</span><span class="ot">@alyssablair</span><span class="co">]</span>.</span>
+<span id="cb16-361"><a href="#cb16-361" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-362"><a href="#cb16-362" aria-hidden="true" tabindex="-1"></a>In summary, the **mediation** package in R is a robust tool for analyzing and interpreting the pathways through which variables influence each other, providing both statistical estimates and tools for visualization and sensitivity analysis.</span>
+<span id="cb16-363"><a href="#cb16-363" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-364"><a href="#cb16-364" aria-hidden="true" tabindex="-1"></a><span class="fu">### Check assumptions after modeling:</span></span>
+<span id="cb16-365"><a href="#cb16-365" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-366"><a href="#cb16-366" aria-hidden="true" tabindex="-1"></a>The <span class="in">`gvlma`</span> function in R is part of the <span class="in">`gvlma`</span> package, which stands for "Global Validation of Linear Models Assumptions." This function is used to perform a comprehensive diagnostic check of the assumptions underlying linear regression models. The <span class="in">`gvlma`</span> package evaluates several key assumptions to ensure the validity of a linear regression model.</span>
+<span id="cb16-367"><a href="#cb16-367" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-368"><a href="#cb16-368" aria-hidden="true" tabindex="-1"></a>A lot of test <span class="in">`gvlma`</span> can do such as:</span>
+<span id="cb16-369"><a href="#cb16-369" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-370"><a href="#cb16-370" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Linearity:** Checks if the relationship between predictors and the outcome is linear.</span>
+<span id="cb16-371"><a href="#cb16-371" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Homoscedasticity:** Assesses if the residuals have constant variance.</span>
+<span id="cb16-372"><a href="#cb16-372" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Independence:** Tests if the residuals are independent.</span>
+<span id="cb16-373"><a href="#cb16-373" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Normality of Residuals:** Checks if residuals are normally distributed.</span>
+<span id="cb16-374"><a href="#cb16-374" aria-hidden="true" tabindex="-1"></a><span class="ss">-   </span>**Model Specification:** Evaluates whether the model is correctly specified.</span>
+<span id="cb16-375"><a href="#cb16-375" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb16-378"><a href="#cb16-378" aria-hidden="true" tabindex="-1"></a><span class="in">```{r}</span></span>
+<span id="cb16-379"><a href="#cb16-379" aria-hidden="true" tabindex="-1"></a><span class="co">#| warning: false</span></span>
+<span id="cb16-380"><a href="#cb16-380" aria-hidden="true" tabindex="-1"></a><span class="co">#| message: false</span></span>
+<span id="cb16-381"><a href="#cb16-381" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(gvlma)</span>
+<span id="cb16-382"><a href="#cb16-382" aria-hidden="true" tabindex="-1"></a><span class="fu">gvlma</span>(fitM)</span>
+<span id="cb16-383"><a href="#cb16-383" aria-hidden="true" tabindex="-1"></a><span class="fu">gvlma</span>(fitY)</span>
+<span id="cb16-384"><a href="#cb16-384" aria-hidden="true" tabindex="-1"></a><span class="in">```</span></span>
+</code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div></div></div></div></div>
+</div> <!-- /content -->
+
+
+
+</body></html>
