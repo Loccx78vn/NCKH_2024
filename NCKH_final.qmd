@@ -1,5 +1,5 @@
 ---
-title: "Mediation analyst in R"
+title: "Introduction"
 subtitle: "Việt Nam, 2024"
 categories: ["Reverse Logistics", "Supply Chain Management"]
 description: "This is my tutorial of implementing the mediation analyst in R."
@@ -9,10 +9,6 @@ format:
   html:
     code-fold: true
     code-tools: true
-    theme: 
-      light: flatly
-      dark: darkly
-    toc: true
 number-sections: true
 bibliography: references.bib
 page-footer:
