@@ -15,7 +15,10 @@ output:
 
 # Input:
 
+## Prepare the dataset:
+
 ```{r}
+#| echo: false
 #Call packages
 pacman::p_load(rio,
                here,
@@ -35,11 +38,20 @@ df<- read_excel("C:/Users/locca/Downloads/Data_Rác thải điện tử.xlsx",
     sheet = "Đã mã hóa")
 ```
 
-# Output:
+Likert data is a type of ordinal data used in surveys and questionnaires to measure attitudes, opinions, or perceptions. Named after psychologist Rensis Likert, who developed the scale, it typically involves respondents indicating their level of agreement or disagreement with a series of statements on a scale.
 
-## Prepare the dataset:
+**Key Features:**
 
-```{r,warning = F}
+1.  **Scale Structure:** Likert scales often use a 5-point or 7-point scale, ranging from strong disagreement to strong agreement. For example, a 5-point scale might include options like "Strongly Disagree," "Disagree," "Neutral," "Agree," and "Strongly Agree."
+
+2.  **Ordinal Nature:** The data collected are ordinal, meaning they represent ordered categories, but the intervals between them are not necessarily equal. For example, the difference between "Agree" and "Strongly Agree" isn't quantifiable in the same way as numerical data.
+
+3.  **Data Analysis:** Likert data is often analyzed using descriptive statistics like means and standard deviations, as well as inferential statistics to explore relationships or differences between groups. While some analyses treat the data as interval-level for convenience, it's crucial to remember its ordinal nature.
+
+4.  **Applications:** Likert data is commonly used in social science research, customer satisfaction surveys, and employee feedback forms to gauge attitudes and opinions.
+
+```{r}
+#| echo: false
 df_new <-df %>% 
   mutate(SAFETY = (SAFETY1+SAFETY2+SAFETY3+SAFETY4)/4,
          OFFER = (OFFER1+OFFER2+OFFER3+OFFER4)/4,
@@ -54,9 +66,9 @@ m<-df %>% select(contains(c("SAFETY",
                             "REVERSE")))
 ```
 
-## Some preliminary analysis data:
-
 ### Likert chart:
+
+Overall, Likert scales are a popular and useful tool for capturing subjective information, though the ordinal nature of the data requires careful consideration in analysis and interpretation.
 
 ```{r Likert chart}
 #===========================
@@ -335,6 +347,18 @@ gg1
 
 ### The distribution plot of likert scales:
 
+In other hand, we can use a distribution plot of Likert data visualizes how responses are distributed across the different scale points. Given the ordinal nature of Likert data, such a plot helps to understand the frequency or proportion of responses for each category on the scale.
+
+Steps to Create a Distribution Plot for Likert Data:
+
+1.    **Collect Data**: Gather your Likert scale responses from the survey or questionnaire.
+
+2.    **Tabulate Responses**: Count the number of responses for each Likert scale point (e.g., "Strongly Disagree" to "Strongly Agree").
+
+3.    **Choose a Visualization Tool**: You can use various tools like Excel, Google Sheets, or statistical software (e.g., R, Python's Matplotlib/Seaborn) to create the plot.
+
+4.    **Plot the Data**: you can consider between **Bar Chart** - where each bar represents the frequency or percentage of responses for each scale point or Pie Chart which shows the proportion of responses for each scale point. If you are dealing with multiple groups or categories, Stacked Bar Chart maybe useful where bars are segmented to show the distribution across the Likert scale for each group.
+
 ```{r}
 
 m_new <-m %>% pivot_longer(cols = everything(),
@@ -382,7 +406,52 @@ corrplot.mixed(cor(df_new %>%
                tl.col = "black")
 ```
 
+# Output:
+
+In this chapter, I will use 2 model: **Linear regression model** and **SEM (Structural equation modeling)** to fit this data.
+
 ## Linear regression analyst:
+
+Linear regression is a statistical method used to model and analyze the relationship between a dependent variable and one or more independent variables. It assumes that the relationship between the variables can be approximated by a straight line.
+
+**Key Concepts of Linear Regression:**
+
+1. **Simple Linear Regression:**
+  - **Purpose:** To model the relationship between a single independent variable (predictor) and a dependent variable (outcome).
+- **Equation:** The relationship is expressed by the linear equation:
+  \[
+    y = \beta_0 + \beta_1 x + \epsilon
+    \]
+where:
+  - \( y \) is the dependent variable.
+- \( x \) is the independent variable.
+- \( \beta_0 \) is the y-intercept (constant term).
+- \( \beta_1 \) is the slope of the line (coefficient of the independent variable).
+- \( \epsilon \) is the error term (residuals).
+
+2. **Multiple Linear Regression:**
+  - **Purpose:** To model the relationship between two or more independent variables and a dependent variable.
+- **Equation:** The relationship is expressed by:
+  \[
+    y = \beta_0 + \beta_1 x_1 + \beta_2 x_2 + \cdots + \beta_n x_n + \epsilon
+    \]
+where \( x_1, x_2, \ldots, x_n \) are the independent variables and \( \beta_1, \beta_2, \ldots, \beta_n \) are their respective coefficients.
+
+3. **Assumptions:**
+  - **Linearity:** The relationship between the dependent and independent variables is linear.
+- **Independence:** Observations are independent of each other.
+- **Homoscedasticity:** The variance of residuals is constant across all levels of the independent variables.
+- **Normality:** Residuals (errors) of the model are normally distributed.
+
+4. **Objective:**
+  - **Fit the Model:** Determine the best-fitting line through the data by minimizing the sum of squared residuals (differences between observed and predicted values).
+- **Prediction:** Use the model to make predictions about the dependent variable based on new values of the independent variables.
+
+5. **Evaluation Metrics:**
+  - **R-squared (\( R^2 \)):** Measures the proportion of variance in the dependent variable that is predictable from the independent variables.
+- **Adjusted R-squared:** Adjusted for the number of predictors in the model, useful for multiple regression.
+- **Mean Squared Error (MSE) and Root Mean Squared Error (RMSE):** Measure the average squared difference between observed and predicted values.
+- **p-values:** Test the statistical significance of each coefficient in the model.
 
 ### Preparing:
 
@@ -412,6 +481,51 @@ plot(TukeyHSD(reg1,conf.level=0.95), las=1 , col="brown")
 
 ### Create dummy variables:
 
+A dummy variable is a numerical variable used in statistical modeling to represent categorical data, often for the purpose of including categorical variables in regression analysis. Dummy variables allow you to incorporate categorical predictors into models that require numerical input.About **Key Concepts of Dummy Variables:**:
+
+1. **Purpose:**
+  - Dummy variables are used to encode categorical variables into a format that can be used in statistical and machine learning models. This encoding helps to quantify categories in a way that models can interpret.
+
+2. **Creation:**
+  - For a categorical variable with \( k \) categories, you create \( k-1 \) dummy variables. This is because using \( k \) dummy variables would create multicollinearity issues (known as the dummy variable trap).
+- Each dummy variable represents one category of the categorical variable, with values typically coded as 0 or 1. A value of 1 indicates the presence of a category, while 0 indicates its absence.
+
+3. **Example:**
+  - Suppose you have a categorical variable "Color" with three categories: Red, Blue, and Green. To include this in a regression model, you would create two dummy variables (since \( 3-1 = 2 \)):
+  
+  - \( \text{Dummy}_1 \) (for Blue): 
+  - 1 if the color is Blue
+- 0 otherwise
+- \( \text{Dummy}_2 \) (for Green): 
+  - 1 if the color is Green
+- 0 otherwise
+
+- Red is the reference category (when both dummy variables are 0).
+
+4. **Interpretation:**
+  - The coefficients of the dummy variables in a regression model represent the difference in the dependent variable relative to the reference category. For instance, if you are predicting sales and "Blue" has a coefficient of 500 compared to the reference "Red," it suggests that the sales for Blue are on average 500 units higher than for Red.
+
+5. **Applications:**
+  - Dummy variables are used in linear regression, logistic regression, ANOVA (Analysis of Variance), and various machine learning models to include categorical features.
+- They are also employed in time series analysis to account for seasonality or other categorical effects.
+
+**Example in Linear Regression:**
+
+Suppose you want to include the "Color" variable in a linear regression model predicting price. The regression model might look like this:
+  
+  \[
+    \text{Price} = \beta_0 + \beta_1 \text{Dummy}_1 + \beta_2 \text{Dummy}_2 + \epsilon
+    \]
+
+where:
+  - \( \text{Dummy}_1 \) represents Blue,
+- \( \text{Dummy}_2 \) represents Green,
+- \( \beta_0 \) is the intercept (Price for the reference category Red),
+- \( \beta_1 \) is the effect of being Blue relative to Red,
+- \( \beta_2 \) is the effect of being Green relative to Red.
+
+If \( \beta_1 = 100 \) and \( \beta_2 = 150 \), it means the price for Blue items is on average $100 higher and for Green items is $150 higher than Red items.
+
 ```{r}
 #Create a matrix contain 3 dummy variables:
 res <- model.matrix(~AGE, data = df_new)
@@ -435,6 +549,7 @@ model <- '
    # Total effect:
   total := indirect'
 
+library(lavaan)
 reg4 <- sem(model,estimator = "ML",data = df_new)
 ##Summarize the results
 summary(reg4, 
@@ -462,8 +577,8 @@ imageplot.bma(bma)
 ```{r,warning = F}
 #Assume X3 is a moderation variable:
 library(jtools)
-summ(reg2<-lm(REVERSE_DECISION ~ AWARENESS*AGE,data = df_new))
-
+summ(reg2<-lm(REVERSE_DECISION ~ AWARENESS*AGE,
+              data = df_new))
 ```
 
 ### Define the SEM model:
@@ -473,8 +588,6 @@ mediation_model <- '
   AWARENESS ~ SAFETY  +  OFFER +  SUPPLYINPUT
   REVERSE_DECISION ~ AWARENESS + SAFETY + OFFER'
 
-
-library(lavaan)
 reg3<-sem(mediation_model,
           data = df_new, 
           group = "MAJOR",
@@ -502,10 +615,10 @@ effect_plot(reg2,
 plot_summs(reg2)
 ```
 
-
 ## Check the model assumptions:
 
 ### Test the varaince hypothesis:
+
 ```{r}
 #Kiểm định phương sai:
 knitr::kable(anova(reg2), digits = 3)
@@ -540,7 +653,8 @@ SỬ dụng phương pháp Durbin-Watson Test để kiểm định sự độc l
 
 -   Gỉa thuyết H1: Có hiện tượng tự tương quan (Autocorrelation) trong mô hình.
 
-Vì p > 0 nên chấp nhận giả thuyết H0, bác bỏ H1 
+Vì p \> 0 nên chấp nhận giả thuyết H0, bác bỏ H1
+
 ```{r}
 ## Computes residual autocorrelations and generalized Durbin-Watson statistics and their bootstrapped p-values.
 durbinWatsonTest(reg2)
@@ -548,7 +662,7 @@ durbinWatsonTest(reg2)
 
 ### Test for the Outlier hypothesis
 
-Sử dụng phương pháp Bonferroni test để kiếm tra các outliers. 
+Sử dụng phương pháp Bonferroni test để kiếm tra các outliers.
 
 Biểu đồ cho thấy các điểm có label là những điểm outliers. Ví dụ trong hình dưới đây điểm có số id là **170** là outlier.
 
@@ -558,8 +672,6 @@ outlierTest(reg2)
 library(car)
 leveragePlots(reg2,
               lwd = 3)
-
-
 ```
 
 ### Test for importance affect in model
@@ -596,4 +708,3 @@ booteval.relimp(boot,
                 bty = "perc",
                 nodiff = T)
 ```
-

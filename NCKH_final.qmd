@@ -1,0 +1,368 @@
+---
+title: "Mediation analyst in R"
+subtitle: "Việt Nam, 2024"
+categories: ["Reverse Logistics", "Supply Chain Management"]
+description: "This is my tutorial of implementing the mediation analyst in R."
+author: "Cao Xuân Lộc"
+date: "2024-08-27"
+format: 
+  html:
+    code-fold: true
+    code-tools: true
+    theme: 
+      light: flatly
+      dark: darkly
+    toc: true
+number-sections: true
+bibliography: references.bib
+page-footer:
+  right: "Built with [Quarto](https://quarto.org/)"
+  left: "&copy; Copyright 2023, Loc cao"
+---
+
+# Input:
+
+I cannot share the data so you can see figures below illustrated how data looks like.
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+#Call packages
+pacman::p_load(rio,
+               here,
+               janitor,
+               tidyverse,
+               dplyr,
+               magrittr,
+               ggplot2,
+               purrr,
+               lubridate,
+               mice,
+               plotly
+)
+
+#Data:
+library(readxl)
+df<- read_excel("C:/Users/locca/Downloads/Data_Rác thải điện tử.xlsx", 
+    sheet = "Đã mã hóa")
+```
+
+## Prepare the dataset:
+
+Likert data is a type of ordinal data used in surveys and questionnaires to measure attitudes, opinions, or perceptions. Named after psychologist Rensis Likert, who developed the scale, it typically involves respondents indicating their level of agreement or disagreement with a series of statements on a scale.
+
+**Key Features:**
+
+1.  **Scale Structure:** Likert scales often use a 5-point or 7-point scale, ranging from strong disagreement to strong agreement. For example, a 5-point scale might include options like "Strongly Disagree," "Disagree," "Neutral," "Agree," and "Strongly Agree."
+
+2.  **Ordinal Nature:** The data collected are ordinal, meaning they represent ordered categories, but the intervals between them are not necessarily equal. For example, the difference between "Agree" and "Strongly Agree" isn't quantifiable in the same way as numerical data.
+
+3.  **Data Analysis:** Likert data is often analyzed using descriptive statistics like means and standard deviations, as well as inferential statistics to explore relationships or differences between groups. While some analyses treat the data as interval-level for convenience, it's crucial to remember its ordinal nature.
+
+4.  **Applications:** Likert data is commonly used in social science research, customer satisfaction surveys, and employee feedback forms to gauge attitudes and opinions.
+
+```{r}
+#| warning: false
+#| message: false
+df_new <-df %>% 
+  mutate(SAFETY = (SAFETY1+SAFETY2+SAFETY3+SAFETY4)/4,
+         OFFER = (OFFER1+OFFER2+OFFER3+OFFER4)/4,
+         AWARENESS = (AWARENESS1+AWARENESS2+AWARENESS3+AWARENESS4)/4,
+         SUPPLYINPUT =(SUPPLYINPUT1+SUPPLYINPUT2+SUPPLYINPUT3+SUPPLYINPUT4)/4,
+         REVERSE_DECISION = (REVERSE_DECISION1+REVERSE_DECISION2+REVERSE_DECISION3+REVERSE_DECISION4)/4)
+
+m<-df %>% select(contains(c("SAFETY",
+                            "OFFER",
+                            "SUPPLY",
+                            "AWARE",
+                            "REVERSE")))
+
+df_new<-df_new %>% 
+  select(-names(m))
+
+  
+##Convert categorical cols in df_new to factor class:
+cols <- c(names(df %>%  select (-c(names(m)))))
+df_new[cols]<-lapply(df_new[cols],factor)
+
+##Check again:
+glimpse(df_new)
+```
+
+### Likert chart:
+
+Overall, Likert scales are a popular and useful tool for capturing subjective information, though the ordinal nature of the data requires careful consideration in analysis and interpretation.
+
+![](Rplot.png){fig-align="center" width="616"}
+
+### The distribution plot of likert scales:
+
+In other hand, we can use a distribution plot of Likert data visualizes how responses are distributed across the different scale points. Given the ordinal nature of Likert data, such a plot helps to understand the frequency or proportion of responses for each category on the scale.
+
+Steps to Create a Distribution Plot for Likert Data:
+
+1.  **Collect Data**: Gather your Likert scale responses from the survey or questionnaire.
+
+2.  **Tabulate Responses**: Count the number of responses for each Likert scale point (e.g., "Strongly Disagree" to "Strongly Agree").
+
+3.  **Choose a Visualization Tool**: You can use various tools like Excel, Google Sheets, or statistical software (e.g., R, Python's Matplotlib/Seaborn) to create the plot.
+
+4.  **Plot the Data**: you can consider between *Bar Chart* - where each bar represents the frequency or percentage of responses for each scale point or *Pie Chart* which shows the proportion of responses for each scale point. If you are dealing with multiple groups or categories, *Stacked Bar Chart* maybe useful where bars are segmented to show the distribution across the Likert scale for each group.
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+m_new <-m %>% pivot_longer(cols = everything(),
+                           names_to = "variable",
+                           values_to = "value")
+
+ggplot()+
+  ggridges::geom_density_ridges(data  = m_new, 
+                                aes(x  = value,
+                                    y  = as.factor(variable),
+                                    fill = as.factor(variable),
+                                    height = ..density..), 
+                                scale = 3, 
+                                alpha = .6) +
+  scale_x_continuous(limits = c(0,6))+
+  geom_vline(xintercept = 3, col = "red",size = 2)+
+  geom_point(data = data.frame(list(variable = unique(m_new$variable), value = colMeans(m))),
+             aes(x = value, 
+                 y = as.factor(variable)),
+             size = 3, 
+             col  = "blue")+
+  theme(legend.position="none")+
+  viridis::scale_fill_viridis(discrete = TRUE)+
+  labs(x        = "Gía trị Likert",
+       y        = "Biến trong thang đo")
+       
+```
+
+### The Correlation coefficients analyst:
+
+A correlation test is used to determine the strength and direction of the relationship between two continuous variables. It assesses whether changes in one variable are associated with changes in another variable.
+
+```{r}
+#| warning: false
+#| message: false
+#| echo: false
+library(corrplot)
+library(grDevices)
+col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
+corrplot.mixed(cor(df_new %>%
+         select(c("SAFETY",
+                  "SUPPLYINPUT",
+                  "OFFER",
+                  "AWARENESS",
+                  "REVERSE_DECISION"))),
+               tl.cex = 0.6,
+               number.cex = 1.5,
+               lower = "number", 
+               upper = "circle",
+               tl.col = "black")
+```
+
+# Output:
+
+## Mediation analyst approach:
+
+A mediation model examines whether the effect of an independent variable (X) on a dependent variable (Y) is transmitted through a third variable, called a mediator (M). For the mediation analysis to be valid and reliable, certain assumptions must be met. Here are the key assumptions:
+
+**Steps in Mediation Analysis:**
+
+1.  **Test the Total Effect:**
+    -   Examine the direct relationship between the independent variable (X) and the dependent variable (Y).
+2.  **Test the Path from X to M:**
+    -   Analyze the relationship between the independent variable (X) and the mediator (M).
+3.  **Test the Path from M to Y:**
+    -   Assess the relationship between the mediator (M) and the dependent variable (Y), controlling for the independent variable (X).
+4.  **Test the Direct Effect:**
+    -   Examine the direct effect of the independent variable (X) on the dependent variable (Y) while controlling for the mediator (M).
+5.  **Compare Effects:**
+    -   Determine if the mediation effect (indirect effect) is significant and if it explains the relationship between X and Y beyond the direct effect.
+
+**Statistical Methods:**
+
+-   **Baron and Kenny’s Approach:** Traditional method involving sequential regression analyses to test the above paths.
+-   **Bootstrapping:** A resampling technique used to estimate the confidence intervals of the indirect effect, often considered more robust than Baron and Kenny’s approach.
+-   **Structural Equation Modeling (SEM):** A comprehensive method that can simultaneously estimate multiple mediation paths and their relationships.
+
+By meeting these assumptions and carefully testing the mediation model, researchers can better understand the mechanisms through which an independent variable influences a dependent variable, providing deeper insights into the underlying processes.
+
+### Check assumptions before modeling:
+
+**Assumptions of a Mediation Model:**
+
+1.  **Linearity:**
+    -   The relationships among the independent variable (X), mediator (M), and dependent variable (Y) should be linear. This means that the effects are additive and can be represented by straight lines in a scatterplot.
+2.  **Independence of Errors:**
+    -   The residuals or errors in the regression equations should be independent of each other. This assumption ensures that the model is not influenced by correlated errors between observations.
+3.  **Homoscedasticity:**
+    -   The variance of the residuals should be constant across all levels of the independent and mediator variables. In other words, the spread of errors should be similar across all values of X and M.
+4.  **Normality of Errors:**
+    -   The residuals or errors in the regression models should be normally distributed. This assumption helps in making valid inferences about the model parameters and their statistical significance.
+5.  **No Multicollinearity:**
+    -   There should be no high correlation among the independent variables, including the mediator variable, as high multicollinearity can make it difficult to isolate the individual effects of each variable.
+6.  **Measurement Validity:**
+    -   The variables should be measured accurately. This means the mediator (M) should genuinely capture the concept it is supposed to represent, and there should be reliable and valid measures for X, M, and Y.
+7.  **Temporal Ordering:**
+    -   For causal inferences, it is crucial that the independent variable (X) precedes the mediator (M), which in turn precedes the dependent variable (Y). This temporal ordering ensures that changes in X can affect M, which then influences Y.
+
+## Implementing in R:
+
+```{r}
+#| warning: false
+#| message: false
+#| layout: [[50,50]]
+## Using the {mvnormalTest} package for univariate (Shapiro-Wilk’s W) and multivariate normality (Mardia’s Multivariate Skewness and Kurtosis tests).
+library(mvnormalTest)
+check<-mardia(df_new %>% select(c("SAFETY",
+                                  "OFFER",
+                                  "AWARENESS",
+                                  "SUPPLYINPUT",
+                                  "REVERSE_DECISION")))
+
+## Check the Univariate normality test
+check$uv.shapiro
+
+## Check the Multivariate normaility test
+check$mv.test
+```
+
+### Modeling with {lavaan} package:
+
+The `lavaan` package in R is a powerful tool for structural equation modeling (SEM). It allows users to specify, estimate, and evaluate complex statistical models that include latent variables, measurement models, and path models. Here’s an overview of the `lavaan` package and its key functionalities:
+
+About model **Structural Equation Modeling (SEM)** in `lavaan`, it will estimate:
+
+-   **Confirmatory Factor Analysis (CFA):** Tests how well a set of observed variables represents underlying latent constructs.
+-   **Path Analysis:** Examines direct and indirect relationships among variables.
+-   **Latent Variable Models:** Models that include unobserved (latent) variables alongside observed variables.
+-   **Mixture Models:** Handles latent variable models with multiple subpopulations.
+
+Beside, the estimated algorithm, `lavaan` use 3 methods including Maximum Likelihood (ML), Generalized Least Squares (GLS), and Robust Maximum Likelihood (MLR).
+
+::: callout-tip
+## Tips for you !!!
+
+You can mention it by argument `estimator` in function `lavaan::sem`.
+:::
+
+```{r}
+#| warning: false
+#| message: false
+##Define the model:
+library(lavaan)
+mediation_model <- '
+  # Direct effects
+  AWARENESS ~ a*SAFETY  +  b*OFFER + c*SUPPLYINPUT
+  REVERSE_DECISION ~ d*AWARENESS + e*SAFETY + f*OFFER
+
+  # Indirect effect:
+  indirect := d*(a + b + c)
+
+  # Total effect:
+  total := e + f + indirect'
+
+##Estimate the mediation model
+reg3 <- sem(mediation_model,estimator = "ML",data = df_new)
+##Summarize the results
+summary(reg3, 
+        standardized = TRUE, 
+        fit.measures = TRUE)
+
+##Plot the result:
+label1<-list(SAFETY = "Sự an toàn",
+             OFFER = "Sự ưu đãi",
+             SUPPLYINPUT = "Cung cấp nguyên liệu đầu vào",
+             AWARENESS = "Nhận thức xã hội",
+             REVERSE_DECISION = "Quyết định tham gia Logistics ngược")
+
+lavaanPlot::lavaanPlot(model = reg3,
+                       labels = label1, 
+                       node_options = list(shape = "box", fontname = "Helvetica"),
+                       edge_options = list(color = "grey"),
+                       coefs = TRUE)
+```
+
+### Modeling with {mediation} package:
+
+The `mediation` package in R is designed to facilitate the analysis of mediation models. Mediation models are used to understand the process through which an independent variable (IV) influences a dependent variable (DV) via one or more mediator variables. Here’s a brief summary of what the package offers:
+
+1.  **Core Functionality**: The primary function of the mediation package is `mediate()`, which estimates the causal mediation effects and provides statistical tests to evaluate the significance of these effects.
+
+2.  **Components**:
+
+    -   **Model Specification**: You need to fit two models—one for the mediator and one for the outcome variable. The mediation package uses these models to estimate the direct and indirect effects.
+    -   **Bootstrapping**: The package supports bootstrapping methods to compute confidence intervals for the indirect effects, enhancing robustness and reliability.
+
+3.  **Key Features**:
+
+    -   **Estimation of Effects**: Provides estimates for direct, indirect, and total effects, allowing for a comprehensive understanding of mediation.
+    -   **Sensitivity Analysis**: Offers tools to assess the sensitivity of the mediation effect to potential violations of assumptions.
+    -   **Multiple Mediators**: Supports models with multiple mediators, including interactions among them.
+
+4.  **Output**:
+
+    -   **Summary Tables**: Produces tables summarizing the estimated effects and their significance.
+    -   **Visualization**: Tools to visualize mediation effects, helping to interpret and present findings.
+
+5.  **Usage**:
+
+    -   You typically fit a regression model for the mediator and another for the outcome, then use `mediate()` to analyze the mediation process.
+
+```{r}
+#| warning: false
+#| message: false
+##Or we can use Preacher & Hayes (2004) approach:
+###Using meidation package:
+library(mediation)
+fitM <- lm(AWARENESS ~ SUPPLYINPUT + SAFETY + OFFER, 
+           data=df_new) 
+fitY <- lm(REVERSE_DECISION ~ AWARENESS + SAFETY + OFFER, 
+           data=df_new)
+fitMed <- mediate(fitM, 
+                  fitY,
+                  sims = 1000,
+                  boot = TRUE,
+                  treat = "SAFETY",
+                  mediator="AWARENESS")
+summary(fitMed)
+plot(fitMed)
+```
+
+The mediate function gives us:
+
+-   Average Direct Effects (ADE) means direct effect of SAFETY and OFFER on REVERSE_DECISION without AWARENESS.
+
+-   Combined indirect and direct effects (Total Effect) means total effect of SAFETY and OFFER on REVERSE_DECISION plus the indirect effect of AWARENESS.
+
+-   Average Causal Mediation Effects (ACME) = Total Effect - ADE
+
+-   The ratio of these estimates (Prop. Mediated).
+
+The ACME here is the indirect effect of M (total effect - direct effect) and thus this value tells us if our mediation effect is significant [@alyssablair].
+
+In summary, the **mediation** package in R is a robust tool for analyzing and interpreting the pathways through which variables influence each other, providing both statistical estimates and tools for visualization and sensitivity analysis.
+
+### Check assumptions after modeling:
+
+The `gvlma` function in R is part of the `gvlma` package, which stands for "Global Validation of Linear Models Assumptions." This function is used to perform a comprehensive diagnostic check of the assumptions underlying linear regression models. The `gvlma` package evaluates several key assumptions to ensure the validity of a linear regression model.
+
+A lot of test `gvlma` can do such as:
+
+-   **Linearity:** Checks if the relationship between predictors and the outcome is linear.
+-   **Homoscedasticity:** Assesses if the residuals have constant variance.
+-   **Independence:** Tests if the residuals are independent.
+-   **Normality of Residuals:** Checks if residuals are normally distributed.
+-   **Model Specification:** Evaluates whether the model is correctly specified.
+
+```{r}
+#| warning: false
+#| message: false
+library(gvlma)
+gvlma(fitM)
+gvlma(fitY)
+```
